@@ -1,0 +1,65 @@
+module.exports = {
+  preset: 'ts-jest',
+  displayName: 'AI Course Creator Tests',
+  testEnvironment: 'node',
+  rootDir: __dirname + '/..',
+  roots: ['<rootDir>/tests'],
+  testMatch: [
+    '**/tests/**/*.test.js',
+    '**/tests/**/*.spec.js',
+  ],
+  collectCoverageFrom: [
+    'src/**/*.ts',
+    '!src/**/*.test.ts',
+    '!src/**/*.spec.ts',
+    '!src/index.ts',
+    '!src/config/**',
+  ],
+  coverageThreshold: {
+    global: {
+      branches: 80,
+      functions: 80,
+      lines: 80,
+      statements: 80,
+    },
+  },
+  coverageDirectory: '<rootDir>/tests/coverage',
+  coverageReporters: ['text', 'lcov', 'html'],
+  setupFiles: ['<rootDir>/tests/setup.js'],
+  setupFilesAfterEnv: ['<rootDir>/tests/setupAfterEnv.js'],
+  testTimeout: 30000,
+  maxWorkers: '50%',
+  verbose: true,
+  forceExit: true,
+  clearMocks: true,
+  restoreMocks: true,
+  testPathIgnorePatterns: [
+    '/node_modules/',
+    '/dist/',
+    '/coverage/',
+  ],
+  moduleNameMapper: {
+    '^@/(.*)$': '<rootDir>/src/$1',
+    '^@config/(.*)$': '<rootDir>/src/config/$1',
+    '^@services/(.*)$': '<rootDir>/src/services/$1',
+    '^@utils/(.*)$': '<rootDir>/src/utils/$1',
+    '^@routes/(.*)$': '<rootDir>/src/routes/$1',
+  },
+  projects: [
+    {
+      displayName: 'unit',
+      testMatch: ['<rootDir>/unit/**/*.test.js'],
+      setupFiles: ['<rootDir>/setup.js', '<rootDir>/unit/setup.js'],
+    },
+    {
+      displayName: 'integration',
+      testMatch: ['<rootDir>/integration/**/*.test.js'],
+      setupFiles: ['<rootDir>/setup.js', '<rootDir>/integration/setup.js'],
+    },
+    {
+      displayName: 'performance',
+      testMatch: ['<rootDir>/performance/**/*.test.js'],
+      setupFiles: ['<rootDir>/setup.js', '<rootDir>/performance/setup.js'],
+    },
+  ],
+};
