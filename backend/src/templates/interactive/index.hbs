@@ -1,0 +1,632 @@
+<!DOCTYPE html>
+<html lang="{{#if course.language}}{{course.language}}{{else}}en{{/if}}" class="interactive-template">
+<head>
+    <!-- Meta Information -->
+    {{> meta}}
+    
+    <title>{{course.title}}</title>
+    
+    <!-- Interactive Template Styles -->
+    <link rel="stylesheet" href="assets/css/style.css">
+    
+    <!-- Base Styles -->
+    {{> base-styles}}
+    
+    <!-- Google Fonts for Interactive Template -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Poppins:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    
+    <!-- Custom CSS -->
+    {{#if options.customizations.customCSS}}
+    <style>
+        {{{options.customizations.customCSS}}}
+    </style>
+    {{/if}}
+    
+    <!-- Structured Data -->
+    <script type="application/ld+json">
+    {
+        "@context": "https://schema.org",
+        "@type": "Course",
+        "name": "{{course.title}}",
+        "description": "{{stripHtml course.description}}",
+        {{#if options.customizations.organizationName}}
+        "provider": {
+            "@type": "Organization",
+            "name": "{{options.customizations.organizationName}}"
+        },
+        {{/if}}
+        "courseMode": "online",
+        "educationalLevel": "{{#if course.level}}{{course.level}}{{else}}beginner{{/if}}",
+        {{#if summary.totalDuration}}
+        "timeRequired": "PT{{summary.totalDuration}}M",
+        {{/if}}
+        "numberOfCredits": {{#if summary.totalSessions}}{{summary.totalSessions}}{{else}}1{{/if}},
+        "interactionMode": "interactive"
+    }
+    </script>
+</head>
+<body class="interactive-theme" {{#if options.accessibility.highContrast}}data-high-contrast="true"{{/if}}>
+    <!-- Skip to main content link -->
+    <a href="#main-content" class="skip-link" aria-label="Skip to main content">Skip to content</a>
+    
+    <!-- Scroll progress indicator -->
+    <div class="scroll-progress" role="progressbar" aria-label="Reading progress" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100">
+        <div class="scroll-progress-bar"></div>
+    </div>
+    
+    <div class="container">
+        <!-- Course Header -->
+        <header class="course-header" role="banner">
+            {{#if options.customizations.logo}}
+            <img src="{{options.customizations.logo}}" alt="{{#if options.customizations.organizationName}}{{options.customizations.organizationName}} logo{{else}}Course logo{{/if}}" class="logo">
+            {{/if}}
+            <h1 class="course-title">{{course.title}}</h1>
+            {{#if course.description}}
+            <div class="course-description" aria-label="Course description">
+                {{{markdown course.description}}}
+            </div>
+            {{/if}}
+            {{#if summary}}
+            <div class="course-meta" role="region" aria-label="Course information">
+                {{#if summary.totalDuration}}
+                <span class="duration" aria-label="Total duration">
+                    <span class="meta-icon" aria-hidden="true">⏱️</span>
+                    {{formatDuration summary.totalDuration}}
+                </span>
+                {{/if}}
+                {{#if summary.totalSessions}}
+                <span class="sessions" aria-label="Number of sessions">
+                    <span class="meta-icon" aria-hidden="true">📚</span>
+                    {{summary.totalSessions}} Sessions
+                </span>
+                {{/if}}
+                {{#if summary.totalActivities}}
+                <span class="activities" aria-label="Number of activities">
+                    <span class="meta-icon" aria-hidden="true">🎯</span>
+                    {{summary.totalActivities}} Activities
+                </span>
+                {{/if}}
+                {{#if course.level}}
+                <span class="level" aria-label="Course level">
+                    <span class="meta-icon" aria-hidden="true">📊</span>
+                    {{titleCase course.level}}
+                </span>
+                {{/if}}
+            </div>
+            {{/if}}
+        </header>
+
+        <!-- Main Content -->
+        <main id="main-content" class="course-content" role="main" tabindex="-1">
+            {{#if isIndexPage}}
+                <!-- Table of Contents -->
+                <nav class="course-navigation" role="navigation" aria-labelledby="toc-heading">
+                    <h2 id="toc-heading">🚀 Course Content</h2>
+                    <div class="session-list" role="list">
+                        {{#eachWithIndex sessions}}
+                        <div class="session-item" role="listitem">
+                            <a href="session-{{add index 1}}.html" class="session-link" aria-describedby="session-{{add index 1}}-meta">
+                                <div class="session-number" aria-label="Session {{add index 1}}">{{add index 1}}</div>
+                                <div class="session-info">
+                                    <h3 class="session-title">{{title}}</h3>
+                                    {{#if description}}
+                                    <p class="session-preview">{{truncate (stripHtml description) 100}}</p>
+                                    {{/if}}
+                                </div>
+                                {{#if estimated_duration}}
+                                <div id="session-{{add index 1}}-meta" class="session-duration" aria-label="Duration">{{formatDuration estimated_duration}}</div>
+                                {{/if}}
+                            </a>
+                            
+                            {{#if objectives}}
+                            <details class="session-details">
+                                <summary class="details-toggle">
+                                    <span class="toggle-icon" aria-hidden="true">📝</span>
+                                    Learning Objectives
+                                </summary>
+                                <ul class="objectives-list" role="list">
+                                    {{#each objectives}}
+                                    <li class="objective-item" role="listitem">✓ {{this}}</li>
+                                    {{/each}}
+                                </ul>
+                            </details>
+                            {{/if}}
+                            
+                            {{#if activities}}
+                            <details class="session-details">
+                                <summary class="details-toggle">
+                                    <span class="toggle-icon" aria-hidden="true">🎯</span>
+                                    Activities ({{activities.length}})
+                                </summary>
+                                <div class="activities-preview">
+                                    {{#each activities}}
+                                    <div class="activity-preview">
+                                        <span class="activity-type" aria-label="Activity type">
+                                            {{#if type}}
+                                            <span class="type-icon" aria-hidden="true">
+                                                {{#eq type 'exercise'}}💪{{/eq}}
+                                                {{#eq type 'quiz'}}❓{{/eq}}
+                                                {{#eq type 'discussion'}}💬{{/eq}}
+                                                {{#eq type 'reading'}}📖{{/eq}}
+                                                {{#eq type 'video'}}🎥{{/eq}}
+                                                {{#eq type 'assignment'}}📝{{/eq}}
+                                                {{#eq type 'project'}}🛠️{{/eq}}
+                                                {{#eq type 'lab'}}🧪{{/eq}}
+                                            </span>
+                                            {{titleCase type}}
+                                            {{else}}
+                                            <span class="type-icon" aria-hidden="true">📋</span>
+                                            Activity
+                                            {{/if}}
+                                        </span>
+                                        <span class="activity-title">{{title}}</span>
+                                    </div>
+                                    {{/each}}
+                                </div>
+                            </details>
+                            {{/if}}
+                        </div>
+                        {{/eachWithIndex}}
+                    </div>
+                </nav>
+                
+                {{#if course.prerequisites}}
+                <section class="course-prerequisites" role="region" aria-labelledby="prerequisites-heading">
+                    <h2 id="prerequisites-heading">🔧 Prerequisites</h2>
+                    <div class="prerequisites-content">
+                        <ul class="prerequisites-list" role="list">
+                            {{#each course.prerequisites}}
+                            <li class="prerequisite-item" role="listitem">
+                                <span class="prerequisite-icon" aria-hidden="true">✅</span>
+                                {{this}}
+                            </li>
+                            {{/each}}
+                        </ul>
+                    </div>
+                </section>
+                {{/if}}
+                
+            {{else}}
+                <!-- All Sessions Content -->
+                {{#each sessions}}
+                <article class="session" id="session-{{@index}}" role="article" aria-labelledby="session-title-{{@index}}">
+                    <header class="session-header">
+                        <div class="session-meta" role="region" aria-label="Session information">
+                            <span class="session-number-badge" aria-label="Session {{add @index 1}}">
+                                Session {{add @index 1}}
+                            </span>
+                        </div>
+                        <h2 id="session-title-{{@index}}" class="session-title">{{title}}</h2>
+                        {{#if description}}
+                        <div class="session-description" aria-label="Session description">
+                            {{{markdown description}}}
+                        </div>
+                        {{/if}}
+                        <div class="session-info">
+                            {{#if estimated_duration}}
+                            <span class="duration" aria-label="Estimated duration">
+                                <span class="info-icon" aria-hidden="true">⏱️</span>
+                                {{formatDuration estimated_duration}}
+                            </span>
+                            {{/if}}
+                            {{#if difficulty}}
+                            <span class="difficulty" aria-label="Difficulty level">
+                                <span class="info-icon" aria-hidden="true">
+                                    {{#eq difficulty 'beginner'}}⭐{{/eq}}
+                                    {{#eq difficulty 'intermediate'}}⭐⭐{{/eq}}
+                                    {{#eq difficulty 'advanced'}}⭐⭐⭐{{/eq}}
+                                </span>
+                                {{titleCase difficulty}}
+                            </span>
+                            {{/if}}
+                        </div>
+                    </header>
+                    
+                    <div class="session-content">
+                        {{{content}}}
+                    </div>
+
+                    {{#if activities}}
+                    <section class="activities" role="region" aria-labelledby="activities-heading-{{@index}}">
+                        <h3 id="activities-heading-{{@index}}" class="activities-title">🎯 Interactive Activities</h3>
+                        {{#each activities}}
+                        {{> activity}}
+                        {{/each}}
+                    </section>
+                    {{/if}}
+                </article>
+                {{/each}}
+            {{/if}}
+        </main>
+
+        <!-- Footer -->
+        {{> footer}}
+    </div>
+
+    <!-- Accessibility tools -->
+    {{#if options.accessibility.showTools}}
+    <div class="accessibility-tools" role="toolbar" aria-label="Accessibility tools">
+        <button type="button" class="a11y-button" id="font-size-increase" aria-label="Increase font size" title="Increase font size">A+</button>
+        <button type="button" class="a11y-button" id="font-size-decrease" aria-label="Decrease font size" title="Decrease font size">A-</button>
+        <button type="button" class="a11y-button" id="high-contrast-toggle" aria-label="Toggle high contrast" title="Toggle high contrast">◐</button>
+        <button type="button" class="a11y-button" id="focus-outline-toggle" aria-label="Toggle focus outlines" title="Toggle focus outlines">□</button>
+        <button type="button" class="a11y-button" id="animation-toggle" aria-label="Toggle animations" title="Toggle animations">🎬</button>
+    </div>
+    {{/if}}
+
+    <!-- Interactive enhancement overlay -->
+    <div id="interactive-overlay" class="interactive-overlay" style="display: none;">
+        <div class="overlay-content">
+            <h3>Interactive Feature</h3>
+            <p>Click on any session card to see a quick preview!</p>
+            <button type="button" id="close-overlay" class="close-button">×</button>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script>
+        (function() {
+            'use strict';
+            
+            // Scroll progress indicator
+            function updateScrollProgress() {
+                const scrolled = (window.scrollY / (document.documentElement.scrollHeight - window.innerHeight)) * 100;
+                const progressBar = document.querySelector('.scroll-progress-bar');
+                const progressContainer = document.querySelector('.scroll-progress');
+                
+                if (progressBar) {
+                    progressBar.style.width = Math.max(0, Math.min(100, scrolled)) + '%';
+                }
+                if (progressContainer) {
+                    progressContainer.setAttribute('aria-valuenow', Math.round(Math.max(0, Math.min(100, scrolled))));
+                }
+            }
+            
+            // Smooth scrolling for anchor links
+            function initSmoothScrolling() {
+                document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+                    anchor.addEventListener('click', function (e) {
+                        e.preventDefault();
+                        const target = document.querySelector(this.getAttribute('href'));
+                        if (target) {
+                            target.scrollIntoView({
+                                behavior: 'smooth',
+                                block: 'start'
+                            });
+                            // Update focus for accessibility
+                            target.focus();
+                        }
+                    });
+                });
+            }
+            
+            // Keyboard navigation
+            function initKeyboardNavigation() {
+                document.addEventListener('keydown', function(e) {
+                    // Alt + H: Home/Course overview
+                    if (e.altKey && e.key === 'h') {
+                        const homeLink = document.querySelector('a[href="index.html"]');
+                        if (homeLink) {
+                            e.preventDefault();
+                            homeLink.click();
+                        }
+                    }
+                    // Tab navigation enhancement
+                    else if (e.key === 'Tab') {
+                        document.body.classList.add('tab-navigation');
+                    }
+                    // Escape key to close overlays
+                    else if (e.key === 'Escape') {
+                        closeOverlay();
+                    }
+                });
+                
+                // Remove tab navigation class on mouse interaction
+                document.addEventListener('mousedown', function() {
+                    document.body.classList.remove('tab-navigation');
+                });
+            }
+            
+            // Accessibility tools
+            function initAccessibilityTools() {
+                const fontSizeIncrease = document.getElementById('font-size-increase');
+                const fontSizeDecrease = document.getElementById('font-size-decrease');
+                const highContrastToggle = document.getElementById('high-contrast-toggle');
+                const focusOutlineToggle = document.getElementById('focus-outline-toggle');
+                const animationToggle = document.getElementById('animation-toggle');
+                
+                let currentFontScale = parseFloat(localStorage.getItem('fontScale')) || 1;
+                
+                if (fontSizeIncrease) {
+                    fontSizeIncrease.addEventListener('click', function() {
+                        currentFontScale = Math.min(currentFontScale + 0.1, 1.5);
+                        document.documentElement.style.fontSize = (currentFontScale * 100) + '%';
+                        localStorage.setItem('fontScale', currentFontScale);
+                        this.setAttribute('aria-pressed', 'true');
+                        setTimeout(() => this.setAttribute('aria-pressed', 'false'), 200);
+                    });
+                }
+                
+                if (fontSizeDecrease) {
+                    fontSizeDecrease.addEventListener('click', function() {
+                        currentFontScale = Math.max(currentFontScale - 0.1, 0.8);
+                        document.documentElement.style.fontSize = (currentFontScale * 100) + '%';
+                        localStorage.setItem('fontScale', currentFontScale);
+                        this.setAttribute('aria-pressed', 'true');
+                        setTimeout(() => this.setAttribute('aria-pressed', 'false'), 200);
+                    });
+                }
+                
+                if (highContrastToggle) {
+                    highContrastToggle.addEventListener('click', function() {
+                        document.body.toggleAttribute('data-high-contrast');
+                        const isHighContrast = document.body.hasAttribute('data-high-contrast');
+                        localStorage.setItem('highContrast', isHighContrast);
+                        this.setAttribute('aria-pressed', isHighContrast);
+                    });
+                }
+                
+                if (focusOutlineToggle) {
+                    focusOutlineToggle.addEventListener('click', function() {
+                        document.body.toggleAttribute('data-show-focus');
+                        const showFocus = document.body.hasAttribute('data-show-focus');
+                        localStorage.setItem('showFocus', showFocus);
+                        this.setAttribute('aria-pressed', showFocus);
+                    });
+                }
+                
+                if (animationToggle) {
+                    animationToggle.addEventListener('click', function() {
+                        document.body.toggleAttribute('data-no-animations');
+                        const noAnimations = document.body.hasAttribute('data-no-animations');
+                        localStorage.setItem('noAnimations', noAnimations);
+                        this.setAttribute('aria-pressed', noAnimations);
+                        
+                        if (noAnimations) {
+                            document.documentElement.style.setProperty('--animation-fast', '0s');
+                            document.documentElement.style.setProperty('--animation-normal', '0s');
+                            document.documentElement.style.setProperty('--animation-slow', '0s');
+                        } else {
+                            document.documentElement.style.removeProperty('--animation-fast');
+                            document.documentElement.style.removeProperty('--animation-normal');
+                            document.documentElement.style.removeProperty('--animation-slow');
+                        }
+                    });
+                }
+                
+                // Restore accessibility preferences
+                if (currentFontScale !== 1) {
+                    document.documentElement.style.fontSize = (currentFontScale * 100) + '%';
+                }
+                
+                const savedHighContrast = localStorage.getItem('highContrast');
+                if (savedHighContrast === 'true') {
+                    document.body.setAttribute('data-high-contrast', '');
+                    if (highContrastToggle) {
+                        highContrastToggle.setAttribute('aria-pressed', 'true');
+                    }
+                }
+                
+                const savedShowFocus = localStorage.getItem('showFocus');
+                if (savedShowFocus === 'true') {
+                    document.body.setAttribute('data-show-focus', '');
+                    if (focusOutlineToggle) {
+                        focusOutlineToggle.setAttribute('aria-pressed', 'true');
+                    }
+                }
+                
+                const savedNoAnimations = localStorage.getItem('noAnimations');
+                if (savedNoAnimations === 'true') {
+                    document.body.setAttribute('data-no-animations', '');
+                    if (animationToggle) {
+                        animationToggle.setAttribute('aria-pressed', 'true');
+                    }
+                    document.documentElement.style.setProperty('--animation-fast', '0s');
+                    document.documentElement.style.setProperty('--animation-normal', '0s');
+                    document.documentElement.style.setProperty('--animation-slow', '0s');
+                }
+            }
+            
+            // Interactive features
+            function initInteractiveFeatures() {
+                // Session card hover effects and previews
+                const sessionItems = document.querySelectorAll('.session-item');
+                sessionItems.forEach((item, index) => {
+                    item.addEventListener('mouseenter', function() {
+                        this.style.transform = 'translateY(-8px) scale(1.02)';
+                        this.style.zIndex = '10';
+                    });
+                    
+                    item.addEventListener('mouseleave', function() {
+                        this.style.transform = '';
+                        this.style.zIndex = '';
+                    });
+                    
+                    // Add staggered animation delay
+                    item.style.animationDelay = (index * 0.1) + 's';
+                });
+                
+                // Interactive details expansion
+                const detailsElements = document.querySelectorAll('details');
+                detailsElements.forEach(details => {
+                    details.addEventListener('toggle', function() {
+                        if (this.open) {
+                            this.style.background = 'var(--gradient-subtle)';
+                            this.style.borderRadius = 'var(--interactive-radius)';
+                            this.style.padding = 'var(--space-4)';
+                            this.style.marginTop = 'var(--space-4)';
+                        } else {
+                            this.style.background = '';
+                            this.style.borderRadius = '';
+                            this.style.padding = '';
+                            this.style.marginTop = '';
+                        }
+                    });
+                });
+                
+                // Interactive code blocks
+                const codeBlocks = document.querySelectorAll('pre code');
+                codeBlocks.forEach(code => {
+                    const pre = code.parentElement;
+                    const copyButton = document.createElement('button');
+                    copyButton.textContent = '📋 Copy';
+                    copyButton.className = 'copy-button';
+                    copyButton.style.cssText = `
+                        position: absolute;
+                        top: 8px;
+                        right: 8px;
+                        background: var(--accent-color);
+                        color: white;
+                        border: none;
+                        padding: 4px 8px;
+                        border-radius: 4px;
+                        font-size: 12px;
+                        cursor: pointer;
+                        opacity: 0;
+                        transition: opacity 0.2s;
+                    `;
+                    
+                    pre.style.position = 'relative';
+                    pre.appendChild(copyButton);
+                    
+                    pre.addEventListener('mouseenter', () => {
+                        copyButton.style.opacity = '1';
+                    });
+                    
+                    pre.addEventListener('mouseleave', () => {
+                        copyButton.style.opacity = '0';
+                    });
+                    
+                    copyButton.addEventListener('click', async () => {
+                        try {
+                            await navigator.clipboard.writeText(code.textContent);
+                            copyButton.textContent = '✅ Copied!';
+                            setTimeout(() => {
+                                copyButton.textContent = '📋 Copy';
+                            }, 2000);
+                        } catch (err) {
+                            copyButton.textContent = '❌ Failed';
+                            setTimeout(() => {
+                                copyButton.textContent = '📋 Copy';
+                            }, 2000);
+                        }
+                    });
+                });
+            }
+            
+            // Overlay functions
+            function showOverlay(content) {
+                const overlay = document.getElementById('interactive-overlay');
+                if (overlay) {
+                    overlay.style.display = 'flex';
+                    setTimeout(() => {
+                        overlay.style.opacity = '1';
+                    }, 10);
+                }
+            }
+            
+            function closeOverlay() {
+                const overlay = document.getElementById('interactive-overlay');
+                if (overlay) {
+                    overlay.style.opacity = '0';
+                    setTimeout(() => {
+                        overlay.style.display = 'none';
+                    }, 300);
+                }
+            }
+            
+            // Parallax and scroll effects
+            function initScrollEffects() {
+                let ticking = false;
+                
+                function updateScrollEffects() {
+                    const scrollY = window.scrollY;
+                    const courseHeader = document.querySelector('.course-header');
+                    
+                    if (courseHeader) {
+                        const offset = scrollY * 0.5;
+                        courseHeader.style.transform = `translateY(${offset}px)`;
+                    }
+                    
+                    ticking = false;
+                }
+                
+                function requestScrollUpdate() {
+                    if (!ticking) {
+                        requestAnimationFrame(updateScrollEffects);
+                        ticking = true;
+                    }
+                }
+                
+                window.addEventListener('scroll', requestScrollUpdate);
+            }
+            
+            // Initialize functionality
+            function init() {
+                updateScrollProgress();
+                initSmoothScrolling();
+                initKeyboardNavigation();
+                initAccessibilityTools();
+                initInteractiveFeatures();
+                initScrollEffects();
+                
+                // Update scroll progress on scroll and resize
+                window.addEventListener('scroll', updateScrollProgress);
+                window.addEventListener('resize', updateScrollProgress);
+                
+                // Close overlay functionality
+                const closeButton = document.getElementById('close-overlay');
+                if (closeButton) {
+                    closeButton.addEventListener('click', closeOverlay);
+                }
+                
+                // Click outside overlay to close
+                const overlay = document.getElementById('interactive-overlay');
+                if (overlay) {
+                    overlay.addEventListener('click', function(e) {
+                        if (e.target === overlay) {
+                            closeOverlay();
+                        }
+                    });
+                }
+            }
+            
+            // Initialize when DOM is ready
+            if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', init);
+            } else {
+                init();
+            }
+            
+            // Print functionality
+            window.addEventListener('beforeprint', function() {
+                document.body.classList.add('printing');
+            });
+            
+            window.addEventListener('afterprint', function() {
+                document.body.classList.remove('printing');
+            });
+        })();
+    </script>
+    
+    <!-- Analytics -->
+    {{#if options.analytics.enabled}}
+    <script>
+        // Analytics placeholder for interactive template
+        console.log('Interactive template loaded for course:', '{{course.title}}');
+        
+        // Track interactive features usage
+        document.addEventListener('click', function(e) {
+            if (e.target.closest('.session-item')) {
+                console.log('Session card clicked:', e.target.closest('.session-item'));
+            }
+            if (e.target.closest('details')) {
+                console.log('Details expanded:', e.target.closest('details'));
+            }
+        });
+    </script>
+    {{/if}}
+</body>
+</html>

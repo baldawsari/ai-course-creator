@@ -1,276 +1,163 @@
 # SERVICES.md
 
-Service Documentation for AI Course Creator
+Service architecture and components for the AI Course Creator backend.
 
-## Advanced Document Processing Pipeline
+## Core Services Overview
 
-### Upload System Architecture
-The file upload system supports multiple file types and URL processing with comprehensive validation and async processing:
+### Document Processing Service
+**Purpose:** Handles file uploads, content extraction, and quality assessment
 
-1. **Upload** → Multer validation → Temporary storage → Queue job creation
-2. **Processing** → File type detection → Content extraction → Storage upload
-3. **Document Analysis** → Quality assessment → Language detection → Content preprocessing
-4. **Smart Chunking** → Semantic/sentence/paragraph/fixed-size strategies → Chunk optimization
-5. **Quality Scoring** → Readability analysis → Coherence assessment → Error detection
-6. **Embedding Generation** → Chunk-based embeddings → Vector storage → Metadata preservation
-7. **Cleanup** → Temporary file removal → Status updates → Error recovery
+**Key Features:**
+- Multi-format support (PDF, DOCX, TXT, URLs)
+- Content quality scoring (0-100 scale)
+- Intelligent chunking strategies
+- Language detection and preprocessing
+- Async processing with Bull queues
 
-### Document Processing Features
+**Quality Thresholds:**
+- Premium (85-100): Professional-grade content
+- Recommended (70-84): Standard quality
+- Acceptable (50-69): Basic content
+- Below Threshold (<50): Requires enhancement
 
-#### Quality Assessment (0-100 scale)
-- Readability scoring (Flesch-Kincaid, Gunning Fog, SMOG, etc.)
-- Content coherence analysis between chunks
-- Error detection (encoding issues, truncation, duplication)
-- Completeness and distribution analysis
+### RAG Pipeline Service
+**Purpose:** Implements Retrieval-Augmented Generation for course content
 
-#### Intelligent Chunking Strategies
-- **Semantic:** Preserves content coherence and topic boundaries
-- **Sentence:** Maintains complete sentences for readability
-- **Paragraph:** Preserves document structure and logical grouping
-- **Fixed-size:** Consistent token counts with overlap for continuity
+**Components:**
+- **Vector Storage:** Qdrant integration for semantic search
+- **Embeddings:** Jina AI for text embeddings
+- **Reranking:** Jina AI reranker for relevance optimization
+- **Hybrid Search:** Combines vector and keyword search
+- **LlamaIndex Integration:** Orchestrates RAG workflow
 
-#### Content Preprocessing
-- Language detection with 50+ language support
-- Encoding normalization (UTF-8, Latin1, ASCII)
-- Special character handling and content deduplication
-- Metadata extraction (title, word count, reading time, key phrases)
+**Pipeline Flow:**
+1. Document chunking → Embedding generation
+2. Vector storage → Index creation
+3. Query processing → Hybrid retrieval
+4. Reranking → Context assembly
+5. Generation → Quality filtering
 
-### Supported File Types
-- **PDF Files:** Text extraction with metadata parsing, handles corrupted files
-- **Word Documents:** .doc/.docx support with style preservation and image detection
-- **Text Files:** UTF-8/Latin1 encoding detection with content normalization
-- **URLs:** Web scraping with content cleaning, screenshot capture, retry logic
+### Claude AI Service
+**Purpose:** Generates course content using Anthropic's Claude API
 
-### Quality-Based Course Generation
-The system automatically filters content based on quality scores to ensure effective learning experiences:
+**Features:**
+- Structured course generation
+- JSON response parsing
+- Rate limiting and error handling
+- Multiple model support (Haiku, Sonnet, Opus)
+- Context-aware content creation
 
-- **Premium Quality (85-100):** Professional-grade content for high-value courses
-- **Recommended Quality (70-84):** Standard quality for effective learning
-- **Acceptable Quality (50-69):** Basic content that may need improvement
-- **Below Threshold (<50):** Content requiring significant enhancement
+### Export Services
 
-### Processing Configuration
-```javascript
-// Chunking strategies available
-const strategies = ['semantic', 'sentence', 'paragraph', 'fixed'];
+#### HTML Export Service
+**Purpose:** Generates HTML course packages
 
-// Quality thresholds (configurable)
-const thresholds = {
-  premium: 85,
-  recommended: 70,
-  minimum: 50
-};
+**Features:**
+- 5 professional templates
+- Handlebars templating engine
+- ZIP archive creation
+- Asset management
+- Responsive design
 
-// Chunk size limits
-const chunkLimits = {
-  maxTokens: 1000,
-  minTokens: 100,
-  overlapTokens: 50
-};
-```
+#### PDF Export Service
+**Purpose:** Converts courses to PDF documents
 
-## Advanced RAG Pipeline Service
+**Features:**
+- Puppeteer-based rendering
+- Table of contents generation
+- Custom headers/footers
+- Multiple page formats
+- Brand customization
 
-### Hybrid Search Architecture
-The RAG pipeline implements a sophisticated hybrid search system that combines multiple retrieval strategies for optimal content discovery:
+#### PowerPoint Export Service
+**Purpose:** Creates presentation versions of courses
 
-- **Semantic Search:** Vector similarity using Jina AI embeddings (v4) with 2048 dimensions
-- **Keyword Search:** BM25-based text matching via SimpleKeywordTableIndex
-- **Hybrid Search:** QueryFusionRetriever with Reciprocal Rank Fusion (RRF) combining both approaches
-- **Query Reranking:** Jina AI reranker (m0) for result quality optimization
+**Features:**
+- pptxgenjs integration
+- Multiple slide templates
+- Automatic layout selection
+- Brand color support
+- 16:9 and 4:3 aspect ratios
 
-### Search Modes and Configuration
-```javascript
-// Search mode options
-const searchModes = {
-  semantic: 'Pure vector/embedding search',
-  keyword: 'Pure BM25/keyword search', 
-  hybrid: 'Combined approach (default)'
-};
+#### Bundle Export Service
+**Purpose:** Multi-format export in single package
 
-// Hybrid search configuration
-const hybridConfig = {
-  semanticWeight: 0.7,    // Weight for semantic search
-  keywordWeight: 0.3,     // Weight for keyword search
-  fusionMode: 'rrf',      // Reciprocal Rank Fusion
-  numQueries: 3           // Query variations for coverage
-};
-```
+**Features:**
+- Combines HTML, PDF, PowerPoint
+- Unified ZIP packaging
+- Format-specific options
+- Error resilience
+- Progress tracking
 
-### Core RAG Methods
-- **`ingestDocuments(documents, courseId, options)`** - Process and index documents with quality filtering
-- **`retrieveRelevantContent(query, filters)`** - Multi-mode search with automatic fallbacks
-- **`generateQueryEmbedding(query)`** - Query-optimized embedding generation
-- **`rerankResults(results, query, options)`** - Advanced result reranking with Jina AI
-- **`searchSimilar(text, options)`** - Direct similarity search with mode selection
+### Design Engine Service
+**Purpose:** Template and component management
 
-### Usage Examples
-```javascript
-// Hybrid search (default)
-const results = await ragPipeline.retrieveRelevantContent(query, {
-  topK: 10,
-  minQuality: 70,
-  enableReranking: true
-});
+**Features:**
+- Component architecture (headers, sessions, activities)
+- CSS variable theming
+- Quality score integration
+- Responsive breakpoints
+- Performance optimization
 
-// Pure semantic search
-const results = await ragPipeline.retrieveRelevantContent(query, {
-  searchMode: 'semantic',
-  courseId: 'course-123'
-});
+## Service Architecture Patterns
 
-// Quality-filtered ingestion
-await ragPipeline.ingestDocuments(documents, courseId, {
-  qualityThreshold: 75,
-  chunkStrategy: 'semantic'
-});
-```
+### Queue Management
+All heavy operations use Bull queues:
+- Document processing jobs
+- Course generation jobs
+- Export generation jobs
+- Retry logic with exponential backoff
+- Progress tracking and status updates
 
-### Performance Optimizations
-- **Batch Processing:** Jina AI embeddings processed in configurable batch sizes (default: 10)
-- **Rate Limiting:** Built-in delays between API calls for cost optimization
-- **Caching:** Embedding metadata stored in database for future reference
-- **Fallback Logic:** Automatic degradation from hybrid → semantic → keyword search
-- **Error Recovery:** Graceful handling of API failures with retry mechanisms
+### External Service Integration
+- **Supabase:** Database and file storage
+- **Qdrant:** Vector database operations
+- **Jina AI:** Embeddings and reranking
+- **Claude AI:** Content generation
+- **Redis:** Queue backend and caching
 
-## Claude API Integration Service
+### Error Handling
+- Service-specific error classes
+- Retry strategies for transient failures
+- Circuit breaker pattern for external APIs
+- Comprehensive logging and monitoring
 
-### Comprehensive Course Generation
-The Claude service provides enterprise-grade course content generation with advanced prompt engineering and optimization:
+### Performance Optimization
+- Chunking for large documents
+- Parallel processing where possible
+- Caching strategies (Redis, memory)
+- Connection pooling
+- Rate limiting
 
-- **Anthropic SDK Integration:** Full configuration management with retry logic and rate limiting
-- **Advanced Prompt Templates:** Specialized templates for course structure, sessions, assessments, and activities
-- **Context Integration:** RAG result injection for enhanced content generation
-- **Multi-Strategy JSON Parsing:** Automatic repair and validation for reliable responses
-- **Performance Optimization:** Token usage tracking, response caching, and parallel generation
+## Configuration
 
-### Generation Methods
-```javascript
-// Generate complete course structure
-const courseStructure = await claudeService.generateCourseStructure(config, ragContext);
+### Environment Variables
+Each service requires specific configuration:
+- API keys for external services
+- Rate limits and timeouts
+- Queue concurrency settings
+- Storage configurations
 
-// Generate detailed session content
-const sessionDetails = await claudeService.generateSessionDetails(session, ragContext, courseContext);
+### Service Dependencies
+Services are loosely coupled with clear interfaces:
+- Document processing → RAG pipeline
+- RAG pipeline → Claude service
+- Claude service → Export services
+- All services → Queue system
 
-// Create comprehensive assessments
-const assessments = await claudeService.generateAssessments(config, ragContext);
+## Monitoring and Health Checks
 
-// Design learning activities
-const activities = await claudeService.generateActivities(objectives, ragContext, courseContext);
+### Service Health Endpoints
+- `/health/services` - Overall service status
+- `/health/queues` - Queue system status
+- `/health/external` - External service connectivity
 
-// Parallel session generation for performance
-const sessions = await claudeService.generateSessionsInParallel(sessionArray, ragContext, courseContext, concurrency);
-```
-
-### Simplified JSON Templates
-All templates use simplified JSON structures for reliability:
-- **Course Structure:** Title, description, duration, level, objectives, sessions array
-- **Session Details:** Title, overview, duration, objectives, activities, materials
-- **Assessments:** Overview, quizzes, assignments, final exam configuration
-- **Activities:** Overview, activity list with type/duration/materials
-
-### Cost and Usage Management
-- **Token Optimization:** Smart prompt construction to minimize token usage
-- **Cost Tracking:** Real-time cost calculation with configurable limits
-- **Response Caching:** Avoid duplicate API calls for identical requests
-- **Usage Statistics:** Comprehensive metrics for monitoring and optimization
-
-## Qdrant Vector Database Service
-
-### Enterprise-Grade Vector Storage
-The Qdrant integration provides production-ready vector database capabilities with comprehensive error handling, performance optimization, and monitoring:
-
-- **Resilient Client:** Exponential backoff, circuit breaker patterns, automatic retry logic
-- **Collection Management:** Dynamic creation, schema configuration, payload indexing
-- **Hybrid Search:** Dense + sparse vector fusion with Reciprocal Rank Fusion (RRF)
-- **Performance Optimization:** Batch operations, connection pooling, quantization support
-- **Monitoring:** Real-time health checks, metrics collection, structured logging
-
-### Vector Service Architecture
-```javascript
-// Collection Configuration
-const collectionConfig = {
-  vectorSize: 2048,           // Embedding dimensions
-  distance: 'Cosine',         // Distance metric (Cosine, Euclidean, Dot)
-  enableSparseVectors: true,  // Hybrid search support
-  quantization: true,         // Memory optimization
-  hnswConfig: {
-    m: 16,                    // Graph connectivity
-    ef_construct: 100         // Index build quality
-  }
-};
-
-// Performance Configuration  
-const batchConfig = {
-  maxBatchSize: 1000,         // Vectors per batch
-  maxConcurrentBatches: 5,    // Parallel processing
-  waitForIndexing: false      // Async indexing
-};
-```
-
-### Core Vector Operations
-- **`createCollection(name, config)`** - Full collection setup with optimized indexes
-- **`insertVectors(vectors, options)`** - Batch insertion with concurrency control
-- **`searchSimilar(queryVector, filters)`** - Semantic similarity search with filtering
-- **`hybridSearch(denseVector, sparseVector)`** - Combined dense/sparse search with RRF
-- **`deleteByFilter(filters)`** - Selective deletion with complex filter conditions
-
-### Advanced Filtering System
-```javascript
-// Multi-dimensional filtering
-const filters = {
-  courseId: 'course-123',           // Exact course match
-  resourceIds: ['res1', 'res2'],    // Multiple resources
-  minQuality: 75,                   // Quality threshold
-  maxQuality: 95,                   // Upper quality bound
-  language: 'en',                   // Language filtering
-  dateFrom: '2024-01-01',          // Date range
-  dateTo: '2024-12-31',            // Date range
-  custom: [                         // Custom conditions
-    {
-      key: 'category',
-      match: { value: 'technical' }
-    },
-    {
-      key: 'difficulty',
-      range: { gte: 3, lte: 8 }
-    }
-  ]
-};
-```
-
-### Monitoring and Resilience
-- **Health Monitoring:** Connection status, collection metrics, response times
-- **Error Recovery:** Automatic retries with jitter, graceful degradation
-- **Performance Metrics:** Success rates, average response times, throughput tracking
-- **Cost Optimization:** Request batching, connection reuse, smart caching
-
-### Production Deployment Features
-- **Connection Pooling:** Persistent connections with automatic reconnection
-- **Batch Processing:** Configurable chunk sizes with controlled concurrency  
-- **Index Optimization:** Automatic payload indexes for common query patterns
-- **Memory Management:** On-disk storage options, vector quantization support
-- **Fault Tolerance:** Circuit breaker patterns, timeout handling, rate limiting
-
-## Course Generation Orchestrator
-
-### Enhanced Workflow Management
-- Comprehensive workflow management with RAG-enhanced context building
-- Quality validation and content refinement mechanisms
-- Async job processing with Bull queue integration
-- Progressive course generation with session-by-session creation
-- Content analysis, topic coverage, and recommendation systems
-- Validation workflows for outline coherence and session progression
-
-### Integration Patterns
-All services are designed to work together seamlessly:
-- **Document Processor** feeds quality-scored content to **RAG Pipeline**
-- **RAG Pipeline** provides context to **Claude Service** for generation
-- **Vector Service** stores and retrieves embeddings for semantic search
-- **Queue System** orchestrates async processing across all services
+### Metrics Collection
+- Processing times
+- Success/failure rates
+- Queue depths
+- API usage tracking
 
 ---
 
-For API endpoints, see [docs/API.md](API.md)
-For utility functions, see [docs/UTILITIES.md](UTILITIES.md)
-For testing procedures, see [docs/TESTING.md](TESTING.md)
+For implementation details and code examples, refer to the source code in `src/services/` or the service-specific test suites.

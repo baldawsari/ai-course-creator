@@ -1,0 +1,63 @@
+<header class="course-header" role="banner">
+    {{#if options.customizations.logo}}
+    <div class="logo-container">
+        <img src="{{options.customizations.logo}}" alt="{{#if options.customizations.organizationName}}{{options.customizations.organizationName}} logo{{else}}Course logo{{/if}}" class="logo">
+    </div>
+    {{/if}}
+    
+    <div class="header-content">
+        <h1 class="course-title">{{course.title}}</h1>
+        {{#if course.description}}
+        <div class="course-description" aria-label="Course description">
+            {{{markdown course.description}}}
+        </div>
+        {{/if}}
+        
+        {{#if summary}}
+        <div class="course-meta" role="region" aria-label="Course information">
+            {{#if summary.totalDuration}}
+            <div class="meta-item">
+                <span class="meta-icon" aria-hidden="true">⏱️</span>
+                <span class="meta-label">Duration:</span>
+                <span class="meta-value">{{formatDuration summary.totalDuration}}</span>
+            </div>
+            {{/if}}
+            
+            {{#if summary.totalSessions}}
+            <div class="meta-item">
+                <span class="meta-icon" aria-hidden="true">📚</span>
+                <span class="meta-label">Sessions:</span>
+                <span class="meta-value">{{summary.totalSessions}}</span>
+            </div>
+            {{/if}}
+            
+            {{#if summary.totalActivities}}
+            <div class="meta-item">
+                <span class="meta-icon" aria-hidden="true">🎯</span>
+                <span class="meta-label">Activities:</span>
+                <span class="meta-value">{{summary.totalActivities}}</span>
+            </div>
+            {{/if}}
+            
+            {{#if course.level}}
+            <div class="meta-item">
+                <span class="meta-icon" aria-hidden="true">📊</span>
+                <span class="meta-label">Level:</span>
+                <span class="meta-value">{{titleCase course.level}}</span>
+            </div>
+            {{/if}}
+        </div>
+        {{/if}}
+        
+        {{#if course.objectives}}
+        <div class="course-objectives">
+            <h2 class="objectives-title">Learning Objectives</h2>
+            <ul class="objectives-list" role="list">
+                {{#each course.objectives}}
+                <li class="objective-item" role="listitem">{{this}}</li>
+                {{/each}}
+            </ul>
+        </div>
+        {{/if}}
+    </div>
+</header>

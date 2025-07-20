@@ -1,0 +1,115 @@
+<!-- Basic Meta Tags -->
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="{{#if session}}{{stripHtml session.description}} - {{course.title}}{{else}}{{stripHtml course.description}}{{/if}}">
+<meta name="keywords" content="{{#if course.tags}}{{join course.tags ', '}}{{else}}course, education, learning{{/if}}">
+<meta name="author" content="{{#if course.author}}{{course.author}}{{else if options.customizations.organizationName}}{{options.customizations.organizationName}}{{else}}AI Course Creator{{/if}}">
+<meta name="generator" content="AI Course Creator">
+<meta name="robots" content="{{#if options.seo.noindex}}noindex, nofollow{{else}}index, follow{{/if}}">
+
+<!-- Language and Direction -->
+<meta name="language" content="{{#if course.language}}{{course.language}}{{else}}en{{/if}}">
+{{#if course.direction}}
+<meta name="direction" content="{{course.direction}}">
+{{/if}}
+
+<!-- Open Graph / Facebook -->
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="{{#if options.customizations.organizationName}}{{options.customizations.organizationName}}{{else}}AI Course Creator{{/if}}">
+<meta property="og:title" content="{{#if session}}{{session.title}} - {{course.title}}{{else}}{{course.title}}{{/if}}">
+<meta property="og:description" content="{{truncate (stripHtml (if session.description session.description course.description)) 155}}">
+<meta property="og:url" content="{{#if options.baseUrl}}{{options.baseUrl}}/{{#if session}}session-{{add sessionIndex 1}}.html{{else}}index.html{{/if}}{{/if}}">
+{{#if options.customizations.logo}}
+<meta property="og:image" content="{{options.customizations.logo}}">
+<meta property="og:image:alt" content="{{#if options.customizations.organizationName}}{{options.customizations.organizationName}} logo{{else}}Course logo{{/if}}">
+{{/if}}
+<meta property="og:locale" content="{{#if course.locale}}{{course.locale}}{{else}}en_US{{/if}}">
+
+<!-- Twitter Card -->
+<meta name="twitter:card" content="{{#if options.customizations.logo}}summary_large_image{{else}}summary{{/if}}">
+<meta name="twitter:title" content="{{#if session}}{{session.title}} - {{course.title}}{{else}}{{course.title}}{{/if}}">
+<meta name="twitter:description" content="{{truncate (stripHtml (if session.description session.description course.description)) 200}}">
+{{#if options.customizations.logo}}
+<meta name="twitter:image" content="{{options.customizations.logo}}">
+<meta name="twitter:image:alt" content="{{#if options.customizations.organizationName}}{{options.customizations.organizationName}} logo{{else}}Course logo{{/if}}">
+{{/if}}
+{{#if options.social.twitterSite}}
+<meta name="twitter:site" content="{{options.social.twitterSite}}">
+{{/if}}
+{{#if options.social.twitterCreator}}
+<meta name="twitter:creator" content="{{options.social.twitterCreator}}">
+{{/if}}
+
+<!-- LinkedIn -->
+{{#if options.customizations.logo}}
+<meta property="linkedin:image" content="{{options.customizations.logo}}">
+{{/if}}
+
+<!-- Apple Meta Tags -->
+<meta name="apple-mobile-web-app-title" content="{{course.title}}">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+{{#if options.customizations.appleTouchIcon}}
+<link rel="apple-touch-icon" href="{{options.customizations.appleTouchIcon}}">
+{{else if options.customizations.logo}}
+<link rel="apple-touch-icon" href="{{options.customizations.logo}}">
+{{/if}}
+
+<!-- Microsoft Tiles -->
+<meta name="msapplication-TileColor" content="{{#if options.customizations.themeColor}}{{options.customizations.themeColor}}{{else}}#3b82f6{{/if}}">
+{{#if options.customizations.logo}}
+<meta name="msapplication-TileImage" content="{{options.customizations.logo}}">
+{{/if}}
+
+<!-- Theme Color -->
+<meta name="theme-color" content="{{#if options.customizations.themeColor}}{{options.customizations.themeColor}}{{else}}#3b82f6{{/if}}">
+<meta name="msapplication-navbutton-color" content="{{#if options.customizations.themeColor}}{{options.customizations.themeColor}}{{else}}#3b82f6{{/if}}">
+
+<!-- Favicons -->
+{{#if options.customizations.favicon}}
+<link rel="icon" type="image/x-icon" href="{{options.customizations.favicon}}">
+<link rel="shortcut icon" href="{{options.customizations.favicon}}">
+{{/if}}
+
+<!-- Canonical URL -->
+{{#if options.baseUrl}}
+<link rel="canonical" href="{{options.baseUrl}}/{{#if session}}session-{{add sessionIndex 1}}.html{{else}}index.html{{/if}}">
+{{/if}}
+
+<!-- Preconnect for Performance -->
+<link rel="preconnect" href="https://fonts.googleapis.com" crossorigin>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+{{#if options.customizations.cdnUrl}}
+<link rel="preconnect" href="{{options.customizations.cdnUrl}}" crossorigin>
+{{/if}}
+
+<!-- DNS Prefetch -->
+<link rel="dns-prefetch" href="//fonts.googleapis.com">
+<link rel="dns-prefetch" href="//fonts.gstatic.com">
+
+<!-- Course-specific meta -->
+{{#if course.difficulty}}
+<meta name="course:difficulty" content="{{course.difficulty}}">
+{{/if}}
+{{#if course.category}}
+<meta name="course:category" content="{{course.category}}">
+{{/if}}
+{{#if summary.totalDuration}}
+<meta name="course:duration" content="{{summary.totalDuration}}">
+{{/if}}
+{{#if summary.totalSessions}}
+<meta name="course:sessions" content="{{summary.totalSessions}}">
+{{/if}}
+
+<!-- Accessibility Meta -->
+<meta name="accessibility-features" content="{{#if options.accessibility.highContrast}}high-contrast{{/if}}{{#if options.accessibility.largeText}}, large-text{{/if}}{{#if options.accessibility.keyboardNavigation}}, keyboard-navigation{{/if}}">
+
+<!-- Copyright -->
+{{#if options.copyright}}
+<meta name="copyright" content="{{options.copyright}}">
+{{/if}}
+
+<!-- Last Modified -->
+{{#if course.updated_at}}
+<meta name="last-modified" content="{{isoDate course.updated_at}}">
+{{/if}}

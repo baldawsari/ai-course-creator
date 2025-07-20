@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{session.title}} - {{course.title}}</title>
+    <link rel="stylesheet" href="assets/css/style.css">
+    {{#if options.customizations.customCSS}}
+    <style>
+        {{{options.customizations.customCSS}}}
+    </style>
+    {{/if}}
+</head>
+<body>
+    <div class="container">
+        <!-- Navigation -->
+        <nav class="session-navigation">
+            <a href="index.html" class="nav-home">← Course Home</a>
+            {{#if sessionIndex}}
+            <a href="session-{{sessionIndex}}.html" class="nav-prev">← Previous</a>
+            {{/if}}
+            {{#if (lt sessionIndex (sub totalSessions 1))}}
+            <a href="session-{{add sessionIndex 2}}.html" class="nav-next">Next →</a>
+            {{/if}}
+        </nav>
+
+        <!-- Session Header -->
+        <header class="session-header">
+            <div class="session-meta">
+                <span class="session-number">Session {{add sessionIndex 1}} of {{totalSessions}}</span>
+            </div>
+            <h1 class="session-title">{{session.title}}</h1>
+            {{#if session.description}}
+            <p class="session-description">{{{markdown session.description}}}</p>
+            {{/if}}
+            <div class="session-info">
+                <span class="duration">{{formatDuration session.estimated_duration}}</span>
+            </div>
+        </header>
+
+        <!-- Session Content -->
+        <main class="session-content">
+            {{{session.content}}}
+        </main>
+
+        <!-- Activities -->
+        {{#if session.activities}}
+        <section class="activities">
+            <h2>Activities</h2>
+            {{#each session.activities}}
+            <div class="activity" id="activity-{{id}}">
+                <h3 class="activity-title">{{title}}</h3>
+                {{#if description}}
+                <p class="activity-description">{{{markdown description}}}</p>
+                {{/if}}
+                <div class="activity-content">
+                    {{{content}}}
+                </div>
+            </div>
+            {{/each}}
+        </section>
+        {{/if}}
+
+        <!-- Progress Indicator -->
+        <div class="progress-indicator">
+            <div class="progress-bar">
+                <div class="progress-fill" style="width: {{multiply (divide (add sessionIndex 1) totalSessions) 100}}%"></div>
+            </div>
+            <span class="progress-text">{{add sessionIndex 1}} of {{totalSessions}} sessions completed</span>
+        </div>
+
+        <!-- Session Navigation Footer -->
+        <nav class="session-navigation-footer">
+            {{#if sessionIndex}}
+            <a href="session-{{sessionIndex}}.html" class="nav-button nav-prev">
+                <span class="nav-label">Previous</span>
+                <span class="nav-title">Session {{sessionIndex}}</span>
+            </a>
+            {{/if}}
+            <a href="index.html" class="nav-button nav-home">
+                <span class="nav-label">Course</span>
+                <span class="nav-title">Overview</span>
+            </a>
+            {{#if (lt sessionIndex (sub totalSessions 1))}}
+            <a href="session-{{add sessionIndex 2}}.html" class="nav-button nav-next">
+                <span class="nav-label">Next</span>
+                <span class="nav-title">Session {{add sessionIndex 2}}</span>
+            </a>
+            {{/if}}
+        </nav>
+
+        <!-- Footer -->
+        <footer class="course-footer">
+            {{#if options.customizations.footer}}
+            <p>{{{options.customizations.footer}}}</p>
+            {{/if}}
+            {{#if options.customizations.organizationName}}
+            <p class="organization">{{options.customizations.organizationName}}</p>
+            {{/if}}
+            <p class="generated-by">Generated with AI Course Creator</p>
+        </footer>
+    </div>
+
+    <!-- Scripts -->
+    <script>
+        // Add smooth scrolling for anchor links
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                const target = document.querySelector(this.getAttribute('href'));
+                if (target) {
+                    target.scrollIntoView({
+                        behavior: 'smooth',
+                        block: 'start'
+                    });
+                }
+            });
+        });
+
+        // Keyboard navigation
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'ArrowLeft' && document.querySelector('.nav-prev')) {
+                document.querySelector('.nav-prev').click();
+            } else if (e.key === 'ArrowRight' && document.querySelector('.nav-next')) {
+                document.querySelector('.nav-next').click();
+            }
+        });
+    </script>
+</body>
+</html>

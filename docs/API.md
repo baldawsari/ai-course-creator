@@ -1,351 +1,173 @@
 # API.md
 
-API Documentation for AI Course Creator
+REST API endpoints and authentication for the AI Course Creator backend.
 
-## Upload API Endpoints
+## Base URL
+- Development: `http://localhost:3001/api`
+- Production: Configure via `BACKEND_URL` environment variable
 
-### File Upload System
-- `POST /api/upload/files` - Multiple file upload (max 10 files, 50MB each) with automatic quality assessment
-- `POST /api/upload/url` - URL content processing with validation and quality scoring
-- `GET /api/upload/status/:jobId` - Real-time progress tracking with quality metrics
-- `DELETE /api/upload/:fileId` - File deletion with cleanup
-- `GET /api/upload/list` - Paginated file listing with quality scores and filters
+## Authentication
 
-#### File Upload Example
-```javascript
-// POST /api/upload/files
-const formData = new FormData();
-formData.append('files', file1);
-formData.append('files', file2);
-formData.append('courseId', 'course-123');
-
-const response = await fetch('/api/upload/files', {
-  method: 'POST',
-  headers: {
-    'Authorization': `Bearer ${token}`
-  },
-  body: formData
-});
+### JWT Token Authentication
+All protected endpoints require a JWT token in the Authorization header:
+```
+Authorization: Bearer <jwt_token>
 ```
 
-#### URL Upload Example
-```javascript
-// POST /api/upload/url
-const response = await fetch('/api/upload/url', {
-  method: 'POST',
-  headers: {
-    'Content-Type': 'application/json',
-    'Authorization': `Bearer ${token}`
-  },
-  body: JSON.stringify({
-    url: 'https://example.com/document.pdf',
-    courseId: 'course-123'
-  })
-});
+### API Key Authentication
+Some endpoints support API key authentication:
+```
+X-API-Key: <api_key>
 ```
 
-## Course Management API
-
-### Comprehensive Course CRUD Operations
-
-#### Course Operations
-- `GET /api/courses` - Paginated course listing with search, filtering, and sorting
-- `POST /api/courses` - Create courses with Joi validation and quality checks
-- `GET /api/courses/:id` - Detailed course retrieval with session and resource data
-- `PUT /api/courses/:id` - Update course metadata with validation
-- `DELETE /api/courses/:id` - Secure course deletion with cascading cleanup
-
-#### Resource Management
-- `GET /api/courses/:id/resources` - List course resources with quality filtering
-- `POST /api/courses/:id/resources` - Bulk resource assignment to courses
-- `DELETE /api/courses/:id/resources/:resourceId` - Remove resources from courses
-
-#### Session Management
-- `GET /api/courses/:id/sessions` - Retrieve ordered course sessions
-- `POST /api/courses/:id/sessions` - Create sessions with auto-sequencing
-- `PUT /api/courses/:id/sessions/:sessionId` - Update session content
-- `DELETE /api/courses/:id/sessions/:sessionId` - Delete sessions with automatic reordering
-- `POST /api/courses/:id/sessions/reorder` - Bulk session reordering
-
-### Course API Examples
-
-#### Create Course
-```javascript
-// POST /api/courses
-const courseData = {
-  title: 'Machine Learning Fundamentals',
-  description: 'Introduction to ML concepts and algorithms',
-  level: 'intermediate',
-  language: 'en',
-  duration: 20,
-  sessionCount: 8,
-  objectives: [
-    'Understand basic ML concepts',
-    'Implement simple algorithms',
-    'Evaluate model performance'
-  ],
-  tags: ['machine-learning', 'python', 'data-science']
-};
-
-const response = await fetch('/api/courses', {
-  method: 'POST',
-  headers: {
-    'Content-Type': 'application/json',
-    'Authorization': `Bearer ${token}`
-  },
-  body: JSON.stringify(courseData)
-});
-```
-
-#### Get Course with Sessions
-```javascript
-// GET /api/courses/:id
-const response = await fetch('/api/courses/course-123', {
-  headers: {
-    'Authorization': `Bearer ${token}`
-  }
-});
-
-const course = await response.json();
-// Returns course with embedded sessions and resources
-```
-
-## Generation API
-
-### Content Analysis and Course Generation
-
-#### Content Analysis
-- `POST /api/generation/analyze` - Deep content analysis with quality metrics, readability scoring, and topic extraction
-
-#### Course Generation
-- `POST /api/generation/generate` - Start advanced or basic course generation with customizable options
-- `POST /api/generation/regenerate` - Regenerate specific sections (outline, sessions, assessments, activities)
-
-#### Job Management
-- `GET /api/generation/status/:jobId` - Real-time status tracking with progress indicators and estimated completion
-- `GET /api/generation/result/:jobId` - Retrieve detailed generation results with course data
-- `GET /api/generation/metrics` - Analytics dashboard with success rates, completion times, and usage statistics
-
-### Generation API Examples
-
-#### Start Course Generation
-```javascript
-// POST /api/generation/generate
-const generationConfig = {
-  courseId: 'course-123',
-  generationType: 'advanced', // 'basic' or 'advanced'
-  options: {
-    includeAssessments: true,
-    includeActivities: true,
-    customPrompt: 'Focus on practical examples',
-    qualityThreshold: 70,
-    sessionCount: 8
-  }
-};
-
-const response = await fetch('/api/generation/generate', {
-  method: 'POST',
-  headers: {
-    'Content-Type': 'application/json',
-    'Authorization': `Bearer ${token}`
-  },
-  body: JSON.stringify(generationConfig)
-});
-
-const { jobId } = await response.json();
-```
-
-#### Check Generation Status
-```javascript
-// GET /api/generation/status/:jobId
-const response = await fetch(`/api/generation/status/${jobId}`, {
-  headers: {
-    'Authorization': `Bearer ${token}`
-  }
-});
-
-const status = await response.json();
-// Returns: { status, progress, estimatedCompletion, currentStep }
-```
-
-## Export API
-
-### HTML Export System
-
-#### HTML Export
-- `POST /api/export/html` - Generate responsive HTML course exports with template selection
-- `GET /api/export/templates` - List available templates with previews and feature descriptions
-- `POST /api/export/customize` - Create customized exports with branding, themes, and layout options
-
-#### Download Management
-- `GET /api/export/status/:exportId` - Export progress tracking with file size and completion estimates
-- `GET /api/export/download/:exportId` - Secure file downloads with automatic cleanup
-- `GET /api/export/history` - User export history with filtering and pagination
-- `DELETE /api/export/:exportId` - Export deletion with file cleanup
-
-### Export API Examples
-
-#### Start HTML Export
-```javascript
-// POST /api/export/html
-const exportConfig = {
-  courseId: 'course-123',
-  template: 'modern', // 'modern', 'classic', 'minimal', 'interactive', 'mobile-first'
-  format: 'single-page', // 'single-page' or 'multi-page'
-  customization: {
-    branding: {
-      logo: 'https://example.com/logo.png',
-      primaryColor: '#007bff',
-      fontFamily: 'Inter'
-    },
-    features: {
-      darkMode: true,
-      printOptimized: true,
-      interactive: false
-    }
-  }
-};
-
-const response = await fetch('/api/export/html', {
-  method: 'POST',
-  headers: {
-    'Content-Type': 'application/json',
-    'Authorization': `Bearer ${token}`
-  },
-  body: JSON.stringify(exportConfig)
-});
-```
-
-#### Download Export
-```javascript
-// GET /api/export/download/:exportId
-const response = await fetch(`/api/export/download/${exportId}`, {
-  headers: {
-    'Authorization': `Bearer ${token}`
-  }
-});
-
-// Download as blob for file saving
-const blob = await response.blob();
-const url = window.URL.createObjectURL(blob);
-const a = document.createElement('a');
-a.href = url;
-a.download = 'course-export.zip';
-a.click();
-```
-
-## Authentication API
-
-### JWT Authentication
-- `POST /api/auth/login` - User login with email/password
+### Authentication Endpoints
+- `POST /api/auth/register` - User registration
+- `POST /api/auth/login` - User login (returns JWT)
 - `POST /api/auth/refresh` - Refresh JWT token
-- `POST /api/auth/logout` - User logout
+- `POST /api/auth/logout` - Logout and invalidate token
 - `GET /api/auth/profile` - Get current user profile
+- `PUT /api/auth/profile` - Update user profile
 
-### API Key Management
-- `POST /api/auth/api-keys` - Create new API key
-- `GET /api/auth/api-keys` - List user's API keys
-- `DELETE /api/auth/api-keys/:keyId` - Revoke API key
-- `PUT /api/auth/api-keys/:keyId` - Update API key permissions
+## Core API Endpoints
 
-### Authentication Examples
+### Upload & Document Management
+- `POST /api/upload/files` - Upload multiple files (max 10 files, 50MB each)
+- `POST /api/upload/url` - Process content from URL
+- `GET /api/upload/status/:jobId` - Check upload job status
+- `GET /api/upload/list` - List uploaded documents (paginated)
+- `DELETE /api/upload/:fileId` - Delete uploaded file
 
-#### Login
-```javascript
-// POST /api/auth/login
-const response = await fetch('/api/auth/login', {
-  method: 'POST',
-  headers: {
-    'Content-Type': 'application/json'
-  },
-  body: JSON.stringify({
-    email: 'user@example.com',
-    password: 'password123'
-  })
-});
+### Course Management
+- `GET /api/courses` - List user's courses (paginated)
+- `POST /api/courses` - Create new course
+- `GET /api/courses/:id` - Get course details
+- `PUT /api/courses/:id` - Update course
+- `DELETE /api/courses/:id` - Delete course
+- `POST /api/courses/:id/duplicate` - Duplicate course
 
-const { token, user } = await response.json();
+### Course Generation
+- `POST /api/generate/course` - Generate course from documents
+- `GET /api/generate/status/:jobId` - Check generation status
+- `POST /api/generate/enhance` - Enhance existing course content
+- `GET /api/generate/models` - List available AI models
+
+### Export Endpoints
+- `POST /api/export/html` - Export course as HTML
+- `POST /api/export/pdf` - Export course as PDF
+- `POST /api/export/ppt` - Export course as PowerPoint
+- `POST /api/export/bundle` - Export multiple formats
+- `GET /api/export/status/:jobId` - Check export job status
+- `GET /api/export/download/:fileId` - Download exported file
+
+### Vector Search
+- `POST /api/vectors/search` - Semantic search in documents
+- `GET /api/vectors/collections` - List vector collections
+- `DELETE /api/vectors/collection/:name` - Delete collection
+
+### Health & Monitoring
+- `GET /api/health` - Basic health check
+- `GET /api/health/services` - Detailed service status
+- `GET /api/health/queues` - Queue system status
+
+## Request/Response Format
+
+### Standard Response Format
+```json
+{
+  "success": true,
+  "data": { ... },
+  "message": "Operation successful"
+}
 ```
 
-#### Create API Key
-```javascript
-// POST /api/auth/api-keys
-const response = await fetch('/api/auth/api-keys', {
-  method: 'POST',
-  headers: {
-    'Content-Type': 'application/json',
-    'Authorization': `Bearer ${token}`
-  },
-  body: JSON.stringify({
-    name: 'Integration API Key',
-    permissions: ['courses:read', 'generation:create'],
-    expiresAt: '2024-12-31T23:59:59Z'
-  })
-});
-```
-
-## Health and Monitoring APIs
-
-### Health Checks
-- `GET /api/health` - Overall system health
-- `GET /api/health/database` - Database connectivity
-- `GET /api/health/vector` - Vector database status
-- `GET /api/health/claude` - Claude API connectivity
-- `GET /api/health/jina` - Jina AI service status
-
-### Metrics
-- `GET /api/metrics/system` - System performance metrics
-- `GET /api/metrics/usage` - API usage statistics
-- `GET /api/metrics/generation` - Course generation analytics
-
-## Error Responses
-
-### Standard Error Format
-```javascript
+### Error Response Format
+```json
 {
   "success": false,
   "error": {
-    "name": "ValidationError",
-    "message": "Validation failed",
-    "code": "VALIDATION_ERROR",
-    "statusCode": 400,
-    "errors": [
-      {
-        "field": "title",
-        "message": "Title is required"
-      }
-    ],
-    "timestamp": "2024-07-07T12:00:00Z"
+    "code": "ERROR_CODE",
+    "message": "Human readable error message",
+    "details": { ... }
   }
 }
 ```
 
-### Common Error Codes
-- `VALIDATION_ERROR` (400) - Input validation failed
-- `AUTHENTICATION_ERROR` (401) - Authentication required
-- `AUTHORIZATION_ERROR` (403) - Insufficient permissions
-- `NOT_FOUND` (404) - Resource not found
-- `RATE_LIMIT_EXCEEDED` (429) - Too many requests
-- `EXTERNAL_SERVICE_ERROR` (502) - External service unavailable
-- `INTERNAL_ERROR` (500) - Server error
+### Pagination Format
+```json
+{
+  "data": [ ... ],
+  "pagination": {
+    "page": 1,
+    "limit": 20,
+    "total": 100,
+    "pages": 5
+  }
+}
+```
+
+## Common Query Parameters
+
+### Pagination
+- `page` - Page number (default: 1)
+- `limit` - Items per page (default: 20, max: 100)
+
+### Filtering
+- `search` - Text search query
+- `status` - Filter by status
+- `startDate` - Filter by date range
+- `endDate` - Filter by date range
+
+### Sorting
+- `sortBy` - Field to sort by
+- `sortOrder` - Sort direction (asc/desc)
 
 ## Rate Limiting
 
-### Rate Limit Headers
-```
-X-RateLimit-Limit: 1000
-X-RateLimit-Remaining: 999
-X-RateLimit-Reset: 1640995200
+### Default Limits
+- Anonymous: 10 requests/minute
+- Authenticated: 100 requests/minute
+- Premium: 1000 requests/minute
+
+### Headers
+- `X-RateLimit-Limit` - Request limit
+- `X-RateLimit-Remaining` - Remaining requests
+- `X-RateLimit-Reset` - Reset timestamp
+
+## WebSocket Events
+
+### Connection
+```javascript
+const socket = io(WS_URL, {
+  auth: { token: jwt_token }
+});
 ```
 
-### Rate Limits by Role
-- **Admin:** 5000 requests/hour
-- **Instructor:** 2000 requests/hour
-- **Student:** 500 requests/hour
-- **API Key:** Configurable per key
+### Events
+- `job:progress` - Job progress updates
+- `generation:status` - Course generation updates
+- `export:complete` - Export completion
+- `error` - Error notifications
+
+## Error Codes
+
+### Client Errors (4xx)
+- `UNAUTHORIZED` - Missing or invalid authentication
+- `FORBIDDEN` - Insufficient permissions
+- `NOT_FOUND` - Resource not found
+- `VALIDATION_ERROR` - Invalid request data
+- `RATE_LIMITED` - Too many requests
+
+### Server Errors (5xx)
+- `INTERNAL_ERROR` - Server error
+- `SERVICE_UNAVAILABLE` - External service down
+- `TIMEOUT` - Request timeout
+
+## API Versioning
+
+The API uses URL versioning. Current version: v1
+- Future versions: `/api/v2/...`
+- Deprecation notices via headers
 
 ---
 
-For service implementation details, see [docs/SERVICES.md](SERVICES.md)
-For testing procedures, see [docs/TESTING.md](TESTING.md)
-For utility functions, see [docs/UTILITIES.md](UTILITIES.md)
+For detailed request/response examples and integration guides, refer to the API client implementation in `frontend/src/lib/api/`.

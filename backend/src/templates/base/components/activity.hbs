@@ -1,0 +1,151 @@
+<div class="activity {{#if type}}activity-{{type}}{{/if}}" id="activity-{{id}}" role="region" aria-labelledby="activity-title-{{id}}">
+    <header class="activity-header">
+        <h3 class="activity-title" id="activity-title-{{id}}">
+            {{#if type}}
+            <span class="activity-type-icon" aria-label="Activity type: {{titleCase type}}">
+                {{#eq type 'exercise'}}💪{{/eq}}
+                {{#eq type 'quiz'}}❓{{/eq}}
+                {{#eq type 'discussion'}}💬{{/eq}}
+                {{#eq type 'reading'}}📖{{/eq}}
+                {{#eq type 'video'}}🎥{{/eq}}
+                {{#eq type 'assignment'}}📝{{/eq}}
+                {{#eq type 'project'}}🛠️{{/eq}}
+                {{#eq type 'lab'}}🧪{{/eq}}
+            </span>
+            {{/if}}
+            {{title}}
+        </h3>
+        
+        {{#if description}}
+        <div class="activity-description">
+            {{{markdown description}}}
+        </div>
+        {{/if}}
+        
+        <div class="activity-meta">
+            {{#if type}}
+            <span class="activity-type">{{titleCase type}}</span>
+            {{/if}}
+            
+            {{#if estimated_duration}}
+            <span class="activity-duration" aria-label="Estimated duration">
+                <span class="duration-icon" aria-hidden="true">⏱️</span>
+                {{formatDuration estimated_duration}}
+            </span>
+            {{/if}}
+            
+            {{#if difficulty}}
+            <span class="activity-difficulty" aria-label="Difficulty level">
+                <span class="difficulty-icon" aria-hidden="true">
+                    {{#eq difficulty 'easy'}}⭐{{/eq}}
+                    {{#eq difficulty 'medium'}}⭐⭐{{/eq}}
+                    {{#eq difficulty 'hard'}}⭐⭐⭐{{/eq}}
+                </span>
+                {{titleCase difficulty}}
+            </span>
+            {{/if}}
+        </div>
+    </header>
+    
+    <div class="activity-content">
+        {{#if content}}
+        <div class="activity-instructions">
+            {{{content}}}
+        </div>
+        {{/if}}
+        
+        {{#if questions}}
+        <div class="activity-questions" role="list" aria-label="Activity questions">
+            {{#each questions}}
+            <div class="question" role="listitem">
+                <h4 class="question-title">Question {{add @index 1}}</h4>
+                <div class="question-content">
+                    {{{markdown this.question}}}
+                </div>
+                
+                {{#if this.type}}
+                {{#eq this.type 'multiple-choice'}}
+                <div class="question-options" role="radiogroup" aria-labelledby="question-title-{{@index}}">
+                    {{#each this.options}}
+                    <label class="option-label">
+                        <input type="radio" name="question-{{@../index}}" value="{{@index}}" class="option-input">
+                        <span class="option-text">{{this}}</span>
+                    </label>
+                    {{/each}}
+                </div>
+                {{/eq}}
+                
+                {{#eq this.type 'true-false'}}
+                <div class="question-options" role="radiogroup" aria-labelledby="question-title-{{@index}}">
+                    <label class="option-label">
+                        <input type="radio" name="question-{{@index}}" value="true" class="option-input">
+                        <span class="option-text">True</span>
+                    </label>
+                    <label class="option-label">
+                        <input type="radio" name="question-{{@index}}" value="false" class="option-input">
+                        <span class="option-text">False</span>
+                    </label>
+                </div>
+                {{/eq}}
+                
+                {{#eq this.type 'short-answer'}}
+                <div class="question-input">
+                    <label for="answer-{{@index}}" class="sr-only">Your answer</label>
+                    <textarea id="answer-{{@index}}" class="answer-textarea" placeholder="Enter your answer here..." rows="3"></textarea>
+                </div>
+                {{/eq}}
+                {{/if}}
+                
+                {{#if this.hint}}
+                <details class="question-hint">
+                    <summary class="hint-toggle">💡 Hint</summary>
+                    <div class="hint-content">
+                        {{{markdown this.hint}}}
+                    </div>
+                </details>
+                {{/if}}
+            </div>
+            {{/each}}
+        </div>
+        {{/if}}
+        
+        {{#if resources}}
+        <div class="activity-resources">
+            <h4 class="resources-title">Resources</h4>
+            <ul class="resources-list" role="list">
+                {{#each resources}}
+                <li class="resource-item" role="listitem">
+                    {{#if this.url}}
+                    <a href="{{this.url}}" class="resource-link" target="_blank" rel="noopener noreferrer" aria-describedby="external-link-description">
+                        {{this.title}}
+                        <span class="external-link-icon" aria-hidden="true">🔗</span>
+                    </a>
+                    {{else}}
+                    <span class="resource-text">{{this.title}}</span>
+                    {{/if}}
+                    {{#if this.description}}
+                    <div class="resource-description">{{this.description}}</div>
+                    {{/if}}
+                </li>
+                {{/each}}
+            </ul>
+        </div>
+        {{/if}}
+    </div>
+    
+    {{#if interactive}}
+    <div class="activity-actions">
+        <button type="button" class="action-button primary" id="submit-activity-{{id}}">
+            Submit Activity
+        </button>
+        <button type="button" class="action-button secondary" id="reset-activity-{{id}}">
+            Reset
+        </button>
+    </div>
+    {{/if}}
+</div>
+
+<!-- Hidden description for screen readers -->
+<div id="external-link-description" class="sr-only">
+    External link, opens in new tab
+</div>

@@ -1,0 +1,255 @@
+{{!-- CourseHeader Component - Main course header with metadata and branding --}}
+<header class="course-header" role="banner">
+  <div class="course-header-content">
+    {{#if options.customizations.logo}}
+      <div class="course-logo">
+        <img src="{{options.customizations.logo}}" alt="{{options.customizations.organizationName}} logo" class="logo-image">
+      </div>
+    {{/if}}
+
+    <div class="course-main-info">
+      <div class="course-title-section">
+        <h1 class="course-title">{{course.title}}</h1>
+        {{#if course.subtitle}}
+          <p class="course-subtitle">{{course.subtitle}}</p>
+        {{/if}}
+      </div>
+
+      <div class="course-meta">
+        <div class="course-meta-primary">
+          {{#if course.level}}
+            <span class="course-level level-{{course.level}}">
+              <span class="level-icon" aria-hidden="true">
+                {{#switch course.level}}
+                  {{#case "beginner"}}🌱{{/case}}
+                  {{#case "intermediate"}}🌿{{/case}}
+                  {{#case "advanced"}}🌳{{/case}}
+                  {{#case "expert"}}🏆{{/case}}
+                  {{#default}}📚{{/default}}
+                {{/switch}}
+              </span>
+              {{titleCase course.level}} Level
+            </span>
+          {{/if}}
+
+          {{#if course.duration}}
+            <span class="course-duration">
+              <span class="duration-icon" aria-hidden="true">⏱️</span>
+              {{formatDuration course.duration}} hours
+            </span>
+          {{/if}}
+
+          {{#if course.sessions}}
+            <span class="course-sessions">
+              <span class="sessions-icon" aria-hidden="true">📋</span>
+              {{course.sessions.length}} sessions
+            </span>
+          {{/if}}
+
+          {{#if course.language}}
+            <span class="course-language">
+              <span class="language-icon" aria-hidden="true">🌐</span>
+              {{getLanguageName course.language}}
+            </span>
+          {{/if}}
+        </div>
+
+        {{#if course.qualityScore}}
+          <div class="course-quality">
+            <span class="quality-indicator quality-{{qualityTier course.qualityScore}}">
+              <span class="quality-icon" aria-hidden="true">
+                {{#if (gte course.qualityScore 85)}}⭐{{/if}}
+                {{#if (and (gte course.qualityScore 70) (lt course.qualityScore 85))}}✨{{/if}}
+                {{#if (and (gte course.qualityScore 50) (lt course.qualityScore 70))}}💫{{/if}}
+                {{#if (lt course.qualityScore 50)}}⚠️{{/if}}
+              </span>
+              {{qualityLabel course.qualityScore}}
+            </span>
+            <span class="quality-score">{{course.qualityScore}}/100</span>
+          </div>
+        {{/if}}
+      </div>
+    </div>
+
+    {{#if course.instructor}}
+      <div class="course-instructor">
+        <div class="instructor-info">
+          {{#if course.instructor.avatar}}
+            <img src="{{course.instructor.avatar}}" alt="{{course.instructor.name}}" class="instructor-avatar">
+          {{else}}
+            <div class="instructor-avatar-placeholder" aria-hidden="true">👨‍🏫</div>
+          {{/if}}
+          <div class="instructor-details">
+            <div class="instructor-label">Instructor</div>
+            <div class="instructor-name">{{course.instructor.name}}</div>
+            {{#if course.instructor.title}}
+              <div class="instructor-title">{{course.instructor.title}}</div>
+            {{/if}}
+          </div>
+        </div>
+      </div>
+    {{/if}}
+  </div>
+
+  {{#if course.description}}
+    <div class="course-description">
+      <div class="description-content">
+        {{{parseMarkdown course.description}}}
+      </div>
+    </div>
+  {{/if}}
+
+  {{#if course.objectives}}
+    <div class="course-objectives">
+      <h2 class="objectives-title">
+        <span class="objectives-icon" aria-hidden="true">🎯</span>
+        Learning Objectives
+      </h2>
+      <ul class="objectives-list">
+        {{#each course.objectives}}
+          <li class="objective-item">
+            <span class="objective-marker" aria-hidden="true">✓</span>
+            {{this}}
+          </li>
+        {{/each}}
+      </ul>
+    </div>
+  {{/if}}
+
+  {{#if course.prerequisites}}
+    <div class="course-prerequisites">
+      <h2 class="prerequisites-title">
+        <span class="prerequisites-icon" aria-hidden="true">📋</span>
+        Prerequisites
+      </h2>
+      <ul class="prerequisites-list">
+        {{#each course.prerequisites}}
+          <li class="prerequisite-item">
+            <span class="prerequisite-marker" aria-hidden="true">•</span>
+            {{this}}
+          </li>
+        {{/each}}
+      </ul>
+    </div>
+  {{/if}}
+
+  {{#if course.tags}}
+    <div class="course-tags">
+      <div class="tags-container">
+        {{#each course.tags}}
+          <span class="course-tag">{{this}}</span>
+        {{/each}}
+      </div>
+    </div>
+  {{/if}}
+
+  <div class="course-progress-overview">
+    <div class="progress-container">
+      <div class="progress-label">Course Progress</div>
+      <div class="progress-bar">
+        <div class="progress-fill" style="width: {{#if progress}}{{progress}}{{else}}0{{/if}}%"></div>
+      </div>
+      <div class="progress-text">
+        {{#if progress}}
+          {{progress}}% Complete
+        {{else}}
+          Ready to Start
+        {{/if}}
+      </div>
+    </div>
+
+    {{#if course.estimatedCompletionTime}}
+      <div class="completion-estimate">
+        <span class="estimate-icon" aria-hidden="true">📅</span>
+        Estimated completion: {{course.estimatedCompletionTime}}
+      </div>
+    {{/if}}
+  </div>
+
+  {{#if options.customizations.organizationName}}
+    <div class="course-organization">
+      <span class="organization-label">Presented by</span>
+      <span class="organization-name">{{options.customizations.organizationName}}</span>
+    </div>
+  {{/if}}
+
+  <div class="course-header-actions">
+    {{#if showStartButton}}
+      <button class="course-start-btn" onclick="scrollToCourseContent()">
+        <span class="btn-icon" aria-hidden="true">🚀</span>
+        Start Course
+      </button>
+    {{/if}}
+
+    {{#if showDownloadButton}}
+      <button class="course-download-btn" onclick="downloadCourse()">
+        <span class="btn-icon" aria-hidden="true">📥</span>
+        Download
+      </button>
+    {{/if}}
+
+    {{#if showPrintButton}}
+      <button class="course-print-btn" onclick="window.print()">
+        <span class="btn-icon" aria-hidden="true">🖨️</span>
+        Print
+      </button>
+    {{/if}}
+  </div>
+
+  {{#if course.lastUpdated}}
+    <div class="course-updated">
+      <span class="updated-label">Last updated:</span>
+      <time datetime="{{course.lastUpdated}}">{{formatDate course.lastUpdated}}</time>
+    </div>
+  {{/if}}
+</header>
+
+{{#if course.announcement}}
+  <div class="course-announcement">
+    <div class="announcement-icon" aria-hidden="true">📢</div>
+    <div class="announcement-content">
+      {{{parseMarkdown course.announcement}}}
+    </div>
+  </div>
+{{/if}}
+
+<script>
+// Course header functionality
+function scrollToCourseContent() {
+  const content = document.querySelector('.course-content, .sessions-container, main');
+  if (content) {
+    content.scrollIntoView({ 
+      behavior: 'smooth',
+      block: 'start'
+    });
+  }
+}
+
+function downloadCourse() {
+  // Implementation would depend on download functionality
+  console.log('Download course functionality would be implemented here');
+}
+
+// Quality score tooltip
+document.addEventListener('DOMContentLoaded', function() {
+  const qualityIndicator = document.querySelector('.quality-indicator');
+  if (qualityIndicator) {
+    qualityIndicator.addEventListener('click', function() {
+      const score = {{course.qualityScore}};
+      let message = '';
+      
+      if (score >= 85) {
+        message = 'Premium Quality: Exceptional content with high readability, coherence, and completeness.';
+      } else if (score >= 70) {
+        message = 'Recommended Quality: Good content quality suitable for effective learning.';
+      } else if (score >= 50) {
+        message = 'Acceptable Quality: Basic content that meets minimum standards.';
+      } else {
+        message = 'Below Threshold: Content may need improvement for optimal learning experience.';
+      }
+      
+      alert(message);
+    });
+  }
+});
+</script>

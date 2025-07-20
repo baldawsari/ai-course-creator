@@ -1,0 +1,240 @@
+{{!-- ActivityBlock Component - Individual activity rendering --}}
+<div class="activity-block activity-{{type}}" data-activity-id="{{id}}" data-activity-type="{{type}}">
+  <header class="activity-header">
+    <div class="activity-meta">
+      <span class="activity-type-badge activity-type-{{type}}">
+        {{#switch type}}
+          {{#case "quiz"}}Quiz{{/case}}
+          {{#case "hands-on"}}Hands-On{{/case}}
+          {{#case "discussion"}}Discussion{{/case}}
+          {{#case "code"}}Code Exercise{{/case}}
+          {{#case "reading"}}Reading{{/case}}
+          {{#case "video"}}Video{{/case}}
+          {{#default}}Activity{{/default}}
+        {{/switch}}
+      </span>
+      {{#if duration}}
+        <span class="activity-duration">{{formatDuration duration}}</span>
+      {{/if}}
+      {{#if difficulty}}
+        <span class="activity-difficulty difficulty-{{difficulty}}">{{titleCase difficulty}}</span>
+      {{/if}}
+    </div>
+    <h3 class="activity-title">
+      <span class="activity-icon" aria-hidden="true">{{activityIcon type}}</span>
+      {{title}}
+    </h3>
+  </header>
+
+  <div class="activity-content">
+    {{#if description}}
+      <div class="activity-description">
+        {{{parseMarkdown description}}}
+      </div>
+    {{/if}}
+
+    {{#if instructions}}
+      <div class="activity-instructions">
+        <h4 class="instructions-title">Instructions</h4>
+        <div class="instructions-content">
+          {{{parseMarkdown instructions}}}
+        </div>
+      </div>
+    {{/if}}
+
+    {{#switch type}}
+      {{#case "quiz"}}
+        <div class="quiz-container">
+          {{#if questions}}
+            <div class="quiz-questions">
+              {{#each questions}}
+                <div class="quiz-question" data-question-id="{{@index}}">
+                  <div class="question-header">
+                    <span class="question-number">Question {{add @index 1}}</span>
+                    {{#if points}}
+                      <span class="question-points">{{points}} pts</span>
+                    {{/if}}
+                  </div>
+                  <div class="question-text">
+                    {{{parseMarkdown question}}}
+                  </div>
+                  {{#if options}}
+                    <div class="question-options">
+                      {{#each options}}
+                        <label class="option-label">
+                          <input type="radio" name="question-{{@../index}}" value="{{@index}}" class="option-input">
+                          <span class="option-text">{{this}}</span>
+                        </label>
+                      {{/each}}
+                    </div>
+                  {{/if}}
+                </div>
+              {{/each}}
+            </div>
+          {{/if}}
+        </div>
+      {{/case}}
+
+      {{#case "hands-on"}}
+        <div class="hands-on-container">
+          {{#if steps}}
+            <div class="hands-on-steps">
+              <h4 class="steps-title">Steps</h4>
+              <ol class="steps-list">
+                {{#each steps}}
+                  <li class="step-item">
+                    <div class="step-content">
+                      {{{parseMarkdown this}}}
+                    </div>
+                  </li>
+                {{/each}}
+              </ol>
+            </div>
+          {{/if}}
+          {{#if expected_outcome}}
+            <div class="expected-outcome">
+              <h4 class="outcome-title">Expected Outcome</h4>
+              <div class="outcome-content">
+                {{{parseMarkdown expected_outcome}}}
+              </div>
+            </div>
+          {{/if}}
+        </div>
+      {{/case}}
+
+      {{#case "discussion"}}
+        <div class="discussion-container">
+          {{#if prompt}}
+            <div class="discussion-prompt">
+              <h4 class="prompt-title">Discussion Prompt</h4>
+              <div class="prompt-content">
+                {{{parseMarkdown prompt}}}
+              </div>
+            </div>
+          {{/if}}
+          {{#if guidelines}}
+            <div class="discussion-guidelines">
+              <h4 class="guidelines-title">Discussion Guidelines</h4>
+              <div class="guidelines-content">
+                {{{parseMarkdown guidelines}}}
+              </div>
+            </div>
+          {{/if}}
+        </div>
+      {{/case}}
+
+      {{#case "code"}}
+        <div class="code-container">
+          {{#if code}}
+            <div class="code-block">
+              <div class="code-header">
+                {{#if language}}
+                  <span class="code-language">{{language}}</span>
+                {{/if}}
+                <button class="code-copy-btn" data-copy-target="code-{{id}}" aria-label="Copy code">
+                  <span class="copy-icon">📋</span>
+                  <span class="copy-text">Copy</span>
+                </button>
+              </div>
+              <pre class="code-content" id="code-{{id}}"><code class="language-{{language}}">{{code}}</code></pre>
+            </div>
+          {{/if}}
+          {{#if explanation}}
+            <div class="code-explanation">
+              <h4 class="explanation-title">Code Explanation</h4>
+              <div class="explanation-content">
+                {{{parseMarkdown explanation}}}
+              </div>
+            </div>
+          {{/if}}
+        </div>
+      {{/case}}
+
+      {{#case "reading"}}
+        <div class="reading-container">
+          {{#if content}}
+            <div class="reading-content">
+              {{{parseMarkdown content}}}
+            </div>
+          {{/if}}
+        </div>
+      {{/case}}
+
+      {{#case "video"}}
+        <div class="video-container">
+          {{#if video_url}}
+            <div class="video-wrapper">
+              <iframe src="{{video_url}}" 
+                      title="{{title}}" 
+                      frameborder="0" 
+                      allowfullscreen
+                      class="video-embed">
+              </iframe>
+            </div>
+          {{/if}}
+          {{#if transcript}}
+            <details class="video-transcript">
+              <summary class="transcript-toggle">Show Transcript</summary>
+              <div class="transcript-content">
+                {{{parseMarkdown transcript}}}
+              </div>
+            </details>
+          {{/if}}
+        </div>
+      {{/case}}
+
+      {{#default}}
+        <div class="generic-activity-container">
+          {{#if content}}
+            <div class="activity-main-content">
+              {{{parseMarkdown content}}}
+            </div>
+          {{/if}}
+        </div>
+      {{/default}}
+    {{/switch}}
+  </div>
+
+  {{#if materials}}
+    <div class="activity-materials">
+      <h4 class="materials-title">
+        <span class="materials-icon" aria-hidden="true">📚</span>
+        Materials & Resources
+      </h4>
+      <ul class="materials-list">
+        {{#each materials}}
+          <li class="material-item">
+            {{#if url}}
+              <a href="{{url}}" target="_blank" rel="noopener noreferrer" class="material-link">
+                <span class="material-title">{{title}}</span>
+                {{#if type}}
+                  <span class="material-type">({{type}})</span>
+                {{/if}}
+              </a>
+            {{else}}
+              <span class="material-title">{{title}}</span>
+              {{#if type}}
+                <span class="material-type">({{type}})</span>
+              {{/if}}
+            {{/if}}
+            {{#if description}}
+              <p class="material-description">{{description}}</p>
+            {{/if}}
+          </li>
+        {{/each}}
+      </ul>
+    </div>
+  {{/if}}
+
+  {{#if notes}}
+    <div class="activity-notes">
+      <h4 class="notes-title">
+        <span class="notes-icon" aria-hidden="true">📝</span>
+        Notes
+      </h4>
+      <div class="notes-content">
+        {{{parseMarkdown notes}}}
+      </div>
+    </div>
+  {{/if}}
+</div>

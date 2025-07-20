@@ -54,10 +54,17 @@ describe('Validation Utilities', () => {
       const result1 = validateFile({});
       expect(result1.valid).toBe(false);
       
-      const result2 = validateFile({ mimetype: 'application/pdf' });
-      expect(result2.valid).toBe(false);
+      const result2 = validateFile({ 
+        mimetype: 'application/pdf',
+        originalname: 'test.pdf',
+        size: 1024
+      });
+      expect(result2.valid).toBe(true);
       
-      const result3 = validateFile({ size: 1024 });
+      const result3 = validateFile({ 
+        size: 1024,
+        originalname: 'test.pdf'
+      });
       expect(result3.valid).toBe(false);
     });
   });

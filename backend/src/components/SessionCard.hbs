@@ -1,0 +1,386 @@
+{{!-- SessionCard Component - Individual session card for course overview --}}
+<div class="session-card {{#if completed}}completed{{/if}} {{#if current}}current{{/if}} {{#if locked}}locked{{/if}}" 
+     data-session-id="{{id}}" 
+     data-session-index="{{@index}}">
+  
+  <div class="session-card-header">
+    <div class="session-number-badge">
+      <span class="session-number">{{add @index 1}}</span>
+    </div>
+    
+    <div class="session-status-indicator">
+      {{#if completed}}
+        <span class="status-icon completed" aria-label="Completed" title="Session Completed">✅</span>
+      {{else if current}}
+        <span class="status-icon current" aria-label="Current" title="Current Session">▶️</span>
+      {{else if locked}}
+        <span class="status-icon locked" aria-label="Locked" title="Session Locked">🔒</span>
+      {{else}}
+        <span class="status-icon pending" aria-label="Pending" title="Not Started">⭕</span>
+      {{/if}}
+    </div>
+
+    {{#if featured}}
+      <div class="session-featured-badge" title="Featured Session">
+        <span class="featured-icon" aria-hidden="true">⭐</span>
+      </div>
+    {{/if}}
+  </div>
+
+  <div class="session-card-content">
+    <header class="session-header">
+      <h3 class="session-title">
+        <a href="{{#if ../multiPage}}session-{{add @index 1}}.html{{else}}#session-{{id}}{{/if}}" 
+           class="session-link {{#if locked}}disabled{{/if}}"
+           {{#if locked}}aria-disabled="true"{{/if}}>
+          {{title}}
+        </a>
+      </h3>
+      
+      {{#if subtitle}}
+        <p class="session-subtitle">{{subtitle}}</p>
+      {{/if}}
+    </header>
+
+    {{#if description}}
+      <div class="session-description">
+        <p class="description-text">{{truncate description 120}}</p>
+        {{#if (gt description.length 120)}}
+          <button class="description-toggle" onclick="toggleDescription('{{id}}')">
+            <span class="toggle-text">Read more</span>
+            <span class="toggle-icon" aria-hidden="true">▼</span>
+          </button>
+          <div id="full-description-{{id}}" class="full-description" style="display: none;">
+            <p class="description-text-full">{{{parseMarkdown description}}}</p>
+            <button class="description-toggle" onclick="toggleDescription('{{id}}')">
+              <span class="toggle-text">Show less</span>
+              <span class="toggle-icon" aria-hidden="true">▲</span>
+            </button>
+          </div>
+        {{/if}}
+      </div>
+    {{/if}}
+
+    <div class="session-meta">
+      <div class="session-meta-primary">
+        {{#if estimated_duration}}
+          <div class="meta-item duration">
+            <span class="meta-icon" aria-hidden="true">⏱️</span>
+            <span class="meta-value">{{formatDuration estimated_duration}}</span>
+            <span class="meta-label">Duration</span>
+          </div>
+        {{/if}}
+
+        {{#if difficulty}}
+          <div class="meta-item difficulty difficulty-{{difficulty}}">
+            <span class="meta-icon" aria-hidden="true">
+              {{#switch difficulty}}
+                {{#case "easy"}}🟢{{/case}}
+                {{#case "medium"}}🟡{{/case}}
+                {{#case "hard"}}🔴{{/case}}
+                {{#default}}⚪{{/default}}
+              {{/switch}}
+            </span>
+            <span class="meta-value">{{titleCase difficulty}}</span>
+            <span class="meta-label">Difficulty</span>
+          </div>
+        {{/if}}
+
+        {{#if type}}
+          <div class="meta-item session-type">
+            <span class="meta-icon" aria-hidden="true">
+              {{#switch type}}
+                {{#case "lecture"}}📖{{/case}}
+                {{#case "workshop"}}🔧{{/case}}
+                {{#case "lab"}}🧪{{/case}}
+                {{#case "discussion"}}💬{{/case}}
+                {{#case "assessment"}}📊{{/case}}
+                {{#default}}📚{{/default}}
+              {{/switch}}
+            </span>
+            <span class="meta-value">{{titleCase type}}</span>
+            <span class="meta-label">Type</span>
+          </div>
+        {{/if}}
+      </div>
+
+      {{#if activities}}
+        <div class="session-activities-summary">
+          <div class="activities-count">
+            <span class="activities-icon" aria-hidden="true">📝</span>
+            <span class="activities-number">{{activities.length}}</span>
+            <span class="activities-label">{{#if (eq activities.length 1)}}Activity{{else}}Activities{{/if}}</span>
+          </div>
+          
+          <div class="activities-types">
+            {{#each (uniqueActivityTypes activities)}}
+              <span class="activity-type-indicator" title="{{titleCase this}}">
+                {{activityIcon this}}
+              </span>
+            {{/each}}
+          </div>
+        </div>
+      {{/if}}
+    </div>
+
+    {{#if objectives}}
+      <div class="session-objectives">
+        <h4 class="objectives-title">
+          <span class="objectives-icon" aria-hidden="true">🎯</span>
+          Learning Objectives
+        </h4>
+        <ul class="objectives-list">
+          {{#each (limitArray objectives 3)}}
+            <li class="objective-item">
+              <span class="objective-marker" aria-hidden="true">✓</span>
+              {{this}}
+            </li>
+          {{/each}}
+          {{#if (gt objectives.length 3)}}
+            <li class="objective-item more-objectives">
+              <button class="show-more-objectives" onclick="toggleObjectives('{{../id}}')">
+                <span class="more-text">+{{sub objectives.length 3}} more</span>
+              </button>
+              <div id="additional-objectives-{{../id}}" class="additional-objectives" style="display: none;">
+                {{#each (skipArray objectives 3)}}
+                  <div class="objective-item">
+                    <span class="objective-marker" aria-hidden="true">✓</span>
+                    {{this}}
+                  </div>
+                {{/each}}
+              </div>
+            </li>
+          {{/if}}
+        </ul>
+      </div>
+    {{/if}}
+
+    {{#if progress}}
+      <div class="session-progress">
+        <div class="progress-header">
+          <span class="progress-label">Progress</span>
+          <span class="progress-percentage">{{progress}}%</span>
+        </div>
+        <div class="progress-bar">
+          <div class="progress-fill" style="width: {{progress}}%"></div>
+        </div>
+        {{#if progressDetails}}
+          <div class="progress-details">
+            <span class="completed-activities">{{progressDetails.completed}}/{{progressDetails.total}} activities</span>
+          </div>
+        {{/if}}
+      </div>
+    {{/if}}
+
+    {{#if timeSpent}}
+      <div class="session-time-tracking">
+        <div class="time-spent">
+          <span class="time-icon" aria-hidden="true">⏱️</span>
+          <span class="time-value">{{formatDuration timeSpent}}</span>
+          <span class="time-label">time spent</span>
+        </div>
+        {{#if estimated_duration}}
+          <div class="time-remaining">
+            <span class="remaining-value">{{formatDuration (subtract estimated_duration timeSpent)}}</span>
+            <span class="remaining-label">remaining</span>
+          </div>
+        {{/if}}
+      </div>
+    {{/if}}
+
+    {{#if prerequisites}}
+      <div class="session-prerequisites">
+        <h4 class="prerequisites-title">
+          <span class="prerequisites-icon" aria-hidden="true">📋</span>
+          Prerequisites
+        </h4>
+        <ul class="prerequisites-list">
+          {{#each prerequisites}}
+            <li class="prerequisite-item">
+              <span class="prerequisite-marker" aria-hidden="true">•</span>
+              {{this}}
+            </li>
+          {{/each}}
+        </ul>
+      </div>
+    {{/if}}
+  </div>
+
+  <div class="session-card-footer">
+    <div class="session-actions">
+      {{#if completed}}
+        <a href="{{#if ../multiPage}}session-{{add @index 1}}.html{{else}}#session-{{id}}{{/if}}" 
+           class="action-button secondary">
+          <span class="button-icon" aria-hidden="true">🔄</span>
+          <span class="button-text">Review</span>
+        </a>
+      {{else if current}}
+        <a href="{{#if ../multiPage}}session-{{add @index 1}}.html{{else}}#session-{{id}}{{/if}}" 
+           class="action-button primary">
+          <span class="button-icon" aria-hidden="true">▶️</span>
+          <span class="button-text">Continue</span>
+        </a>
+      {{else if locked}}
+        <button class="action-button disabled" disabled title="Complete previous sessions to unlock">
+          <span class="button-icon" aria-hidden="true">🔒</span>
+          <span class="button-text">Locked</span>
+        </button>
+      {{else}}
+        <a href="{{#if ../multiPage}}session-{{add @index 1}}.html{{else}}#session-{{id}}{{/if}}" 
+           class="action-button primary">
+          <span class="button-icon" aria-hidden="true">🚀</span>
+          <span class="button-text">Start</span>
+        </a>
+      {{/if}}
+
+      {{#if bookmarkable}}
+        <button class="action-button bookmark {{#if bookmarked}}bookmarked{{/if}}" 
+                onclick="toggleBookmark('{{id}}')"
+                title="{{#if bookmarked}}Remove bookmark{{else}}Bookmark session{{/if}}">
+          <span class="button-icon" aria-hidden="true">{{#if bookmarked}}🔖{{else}}📖{{/if}}</span>
+        </button>
+      {{/if}}
+
+      {{#if downloadable}}
+        <button class="action-button download" 
+                onclick="downloadSession('{{id}}')"
+                title="Download session materials">
+          <span class="button-icon" aria-hidden="true">📥</span>
+        </button>
+      {{/if}}
+    </div>
+
+    {{#if tags}}
+      <div class="session-tags">
+        {{#each (limitArray tags 3)}}
+          <span class="session-tag">{{this}}</span>
+        {{/each}}
+        {{#if (gt tags.length 3)}}
+          <span class="session-tag more-tags" title="{{join (skipArray tags 3) ', '}}">
+            +{{sub tags.length 3}}
+          </span>
+        {{/if}}
+      </div>
+    {{/if}}
+  </div>
+
+  {{#if lastAccessed}}
+    <div class="session-last-accessed">
+      <span class="last-accessed-icon" aria-hidden="true">📅</span>
+      <span class="last-accessed-text">Last accessed {{formatRelativeDate lastAccessed}}</span>
+    </div>
+  {{/if}}
+</div>
+
+<script>
+// Session card functionality
+function toggleDescription(sessionId) {
+  const card = document.querySelector(`[data-session-id="${sessionId}"]`);
+  const fullDescription = card.querySelector(`#full-description-${sessionId}`);
+  const toggleButtons = card.querySelectorAll('.description-toggle');
+  
+  const isVisible = fullDescription.style.display !== 'none';
+  fullDescription.style.display = isVisible ? 'none' : 'block';
+  
+  // Hide the original toggle button and description
+  const shortDescription = card.querySelector('.description-text');
+  const originalToggle = card.querySelector('.description-toggle');
+  
+  if (isVisible) {
+    shortDescription.style.display = 'block';
+    originalToggle.style.display = 'inline-block';
+  } else {
+    shortDescription.style.display = 'none';
+    originalToggle.style.display = 'none';
+  }
+}
+
+function toggleObjectives(sessionId) {
+  const additionalObjectives = document.getElementById(`additional-objectives-${sessionId}`);
+  const toggleButton = document.querySelector(`[onclick="toggleObjectives('${sessionId}')"]`);
+  
+  const isVisible = additionalObjectives.style.display !== 'none';
+  additionalObjectives.style.display = isVisible ? 'none' : 'block';
+  
+  const moreText = toggleButton.querySelector('.more-text');
+  if (isVisible) {
+    const hiddenCount = toggleButton.closest('.session-card').querySelectorAll('#additional-objectives-' + sessionId + ' .objective-item').length;
+    moreText.textContent = `+${hiddenCount} more`;
+  } else {
+    moreText.textContent = 'Show less';
+  }
+}
+
+function toggleBookmark(sessionId) {
+  const button = document.querySelector(`[onclick="toggleBookmark('${sessionId}')"]`);
+  const icon = button.querySelector('.button-icon');
+  const isBookmarked = button.classList.contains('bookmarked');
+  
+  if (isBookmarked) {
+    button.classList.remove('bookmarked');
+    icon.textContent = '📖';
+    button.title = 'Bookmark session';
+  } else {
+    button.classList.add('bookmarked');
+    icon.textContent = '🔖';
+    button.title = 'Remove bookmark';
+  }
+  
+  // Save bookmark state
+  const bookmarks = JSON.parse(localStorage.getItem('sessionBookmarks') || '[]');
+  if (isBookmarked) {
+    const index = bookmarks.indexOf(sessionId);
+    if (index > -1) bookmarks.splice(index, 1);
+  } else {
+    bookmarks.push(sessionId);
+  }
+  localStorage.setItem('sessionBookmarks', JSON.stringify(bookmarks));
+}
+
+function downloadSession(sessionId) {
+  // Implementation would depend on download functionality
+  console.log(`Download session ${sessionId}`);
+  // This could trigger a PDF generation, ZIP download, etc.
+}
+
+// Initialize session cards
+document.addEventListener('DOMContentLoaded', function() {
+  // Load bookmark states
+  const bookmarks = JSON.parse(localStorage.getItem('sessionBookmarks') || '[]');
+  bookmarks.forEach(sessionId => {
+    const button = document.querySelector(`[onclick="toggleBookmark('${sessionId}')"]`);
+    if (button) {
+      button.classList.add('bookmarked');
+      button.querySelector('.button-icon').textContent = '🔖';
+      button.title = 'Remove bookmark';
+    }
+  });
+  
+  // Add hover effects for better interactivity
+  document.querySelectorAll('.session-card').forEach(card => {
+    card.addEventListener('mouseenter', function() {
+      if (!this.classList.contains('locked')) {
+        this.style.transform = 'translateY(-2px)';
+      }
+    });
+    
+    card.addEventListener('mouseleave', function() {
+      this.style.transform = 'translateY(0)';
+    });
+  });
+  
+  // Add keyboard navigation
+  document.addEventListener('keydown', function(e) {
+    if (e.target.classList.contains('session-card') || e.target.closest('.session-card')) {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        const card = e.target.closest('.session-card');
+        const link = card.querySelector('.session-link');
+        if (link && !link.classList.contains('disabled')) {
+          link.click();
+        }
+      }
+    }
+  });
+});
+</script>

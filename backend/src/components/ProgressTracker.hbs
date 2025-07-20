@@ -1,0 +1,378 @@
+{{!-- ProgressTracker Component - Course progress visualization and tracking --}}
+<div class="progress-tracker" data-course-id="{{course.id}}">
+  <div class="progress-header">
+    <h2 class="progress-title">
+      <span class="progress-icon" aria-hidden="true">📊</span>
+      Your Progress
+    </h2>
+    {{#if lastUpdated}}
+      <div class="progress-updated">
+        <span class="updated-label">Last updated:</span>
+        <time datetime="{{lastUpdated}}">{{formatDate lastUpdated}}</time>
+      </div>
+    {{/if}}
+  </div>
+
+  <div class="progress-content">
+    <!-- Overall Progress -->
+    <div class="overall-progress">
+      <div class="overall-progress-header">
+        <h3 class="overall-title">Course Completion</h3>
+        <span class="overall-percentage">{{#if overallProgress}}{{overallProgress}}{{else}}0{{/if}}%</span>
+      </div>
+      
+      <div class="overall-progress-bar">
+        <div class="progress-fill" style="width: {{#if overallProgress}}{{overallProgress}}{{else}}0{{/if}}%"></div>
+        <div class="progress-milestones">
+          <span class="milestone milestone-25 {{#if (gte overallProgress 25)}}reached{{/if}}" title="25% Complete"></span>
+          <span class="milestone milestone-50 {{#if (gte overallProgress 50)}}reached{{/if}}" title="50% Complete"></span>
+          <span class="milestone milestone-75 {{#if (gte overallProgress 75)}}reached{{/if}}" title="75% Complete"></span>
+          <span class="milestone milestone-100 {{#if (gte overallProgress 100)}}reached{{/if}}" title="100% Complete"></span>
+        </div>
+      </div>
+      
+      <div class="overall-stats">
+        <div class="stat-item">
+          <span class="stat-icon" aria-hidden="true">✅</span>
+          <span class="stat-value">{{#if completedSessions}}{{completedSessions}}{{else}}0{{/if}}</span>
+          <span class="stat-label">Sessions Completed</span>
+        </div>
+        <div class="stat-item">
+          <span class="stat-icon" aria-hidden="true">📚</span>
+          <span class="stat-value">{{#if course.sessions}}{{course.sessions.length}}{{else}}0{{/if}}</span>
+          <span class="stat-label">Total Sessions</span>
+        </div>
+        <div class="stat-item">
+          <span class="stat-icon" aria-hidden="true">⏱️</span>
+          <span class="stat-value">{{#if timeSpent}}{{formatDuration timeSpent}}{{else}}0h{{/if}}</span>
+          <span class="stat-label">Time Spent</span>
+        </div>
+        <div class="stat-item">
+          <span class="stat-icon" aria-hidden="true">🎯</span>
+          <span class="stat-value">{{#if completedActivities}}{{completedActivities}}{{else}}0{{/if}}</span>
+          <span class="stat-label">Activities Done</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Session Progress -->
+    {{#if course.sessions}}
+      <div class="session-progress">
+        <h3 class="section-title">
+          <span class="section-icon" aria-hidden="true">📋</span>
+          Session Progress
+        </h3>
+        
+        <div class="session-progress-list">
+          {{#each course.sessions}}
+            <div class="session-progress-item {{#if completed}}completed{{/if}} {{#if current}}current{{/if}}" 
+                 data-session-id="{{id}}">
+              
+              <div class="session-progress-header">
+                <div class="session-info">
+                  <span class="session-number">{{add @index 1}}</span>
+                  <h4 class="session-title">{{title}}</h4>
+                </div>
+                
+                <div class="session-status">
+                  {{#if completed}}
+                    <span class="status-badge completed">
+                      <span class="status-icon" aria-hidden="true">✅</span>
+                      Completed
+                    </span>
+                  {{else if current}}
+                    <span class="status-badge current">
+                      <span class="status-icon" aria-hidden="true">▶️</span>
+                      In Progress
+                    </span>
+                  {{else if locked}}
+                    <span class="status-badge locked">
+                      <span class="status-icon" aria-hidden="true">🔒</span>
+                      Locked
+                    </span>
+                  {{else}}
+                    <span class="status-badge pending">
+                      <span class="status-icon" aria-hidden="true">⭕</span>
+                      Not Started
+                    </span>
+                  {{/if}}
+                </div>
+              </div>
+
+              {{#if progress}}
+                <div class="session-progress-bar">
+                  <div class="progress-fill" style="width: {{progress}}%"></div>
+                  <span class="progress-text">{{progress}}%</span>
+                </div>
+              {{/if}}
+
+              {{#if activities}}
+                <div class="session-activities-progress">
+                  <div class="activities-summary">
+                    <span class="activities-completed">
+                      {{#if completedActivities}}{{completedActivities}}{{else}}0{{/if}}/{{activities.length}}
+                    </span>
+                    <span class="activities-label">activities completed</span>
+                  </div>
+                  
+                  <div class="activities-list">
+                    {{#each activities}}
+                      <div class="activity-progress-item {{#if completed}}completed{{/if}}" 
+                           title="{{title}} - {{#if completed}}Completed{{else}}Not completed{{/if}}">
+                        <span class="activity-type-icon" aria-hidden="true">{{activityIcon type}}</span>
+                        <span class="activity-status-icon" aria-hidden="true">
+                          {{#if completed}}✅{{else}}⭕{{/if}}
+                        </span>
+                      </div>
+                    {{/each}}
+                  </div>
+                </div>
+              {{/if}}
+
+              {{#if timeSpent}}
+                <div class="session-time">
+                  <span class="time-icon" aria-hidden="true">⏱️</span>
+                  <span class="time-spent">{{formatDuration timeSpent}}</span>
+                  {{#if estimated_duration}}
+                    <span class="time-estimated">of {{formatDuration estimated_duration}}</span>
+                  {{/if}}
+                </div>
+              {{/if}}
+            </div>
+          {{/each}}
+        </div>
+      </div>
+    {{/if}}
+
+    <!-- Achievement System -->
+    {{#if achievements}}
+      <div class="achievements-section">
+        <h3 class="section-title">
+          <span class="section-icon" aria-hidden="true">🏆</span>
+          Achievements
+        </h3>
+        
+        <div class="achievements-grid">
+          {{#each achievements}}
+            <div class="achievement-item {{#if unlocked}}unlocked{{/if}}" 
+                 title="{{description}}">
+              <div class="achievement-icon">{{icon}}</div>
+              <div class="achievement-info">
+                <h4 class="achievement-title">{{title}}</h4>
+                <p class="achievement-description">{{description}}</p>
+                {{#if unlocked}}
+                  <div class="achievement-date">
+                    <span class="date-icon" aria-hidden="true">🗓️</span>
+                    <span class="date-text">Earned {{formatDate unlockedDate}}</span>
+                  </div>
+                {{else}}
+                  <div class="achievement-progress">
+                    {{#if progress}}
+                      <div class="progress-bar">
+                        <div class="progress-fill" style="width: {{progress}}%"></div>
+                      </div>
+                      <span class="progress-text">{{progress}}%</span>
+                    {{/if}}
+                  </div>
+                {{/if}}
+              </div>
+              {{#if unlocked}}
+                <div class="achievement-badge">
+                  <span class="badge-icon" aria-hidden="true">✨</span>
+                </div>
+              {{/if}}
+            </div>
+          {{/each}}
+        </div>
+      </div>
+    {{/if}}
+
+    <!-- Learning Analytics -->
+    {{#if showAnalytics}}
+      <div class="learning-analytics">
+        <h3 class="section-title">
+          <span class="section-icon" aria-hidden="true">📈</span>
+          Learning Analytics
+        </h3>
+        
+        <div class="analytics-grid">
+          {{#if streak}}
+            <div class="analytics-card">
+              <div class="card-icon" aria-hidden="true">🔥</div>
+              <div class="card-content">
+                <div class="card-value">{{streak}}</div>
+                <div class="card-label">Day Streak</div>
+              </div>
+            </div>
+          {{/if}}
+
+          {{#if averageSessionTime}}
+            <div class="analytics-card">
+              <div class="card-icon" aria-hidden="true">⏱️</div>
+              <div class="card-content">
+                <div class="card-value">{{formatDuration averageSessionTime}}</div>
+                <div class="card-label">Avg Session</div>
+              </div>
+            </div>
+          {{/if}}
+
+          {{#if completionRate}}
+            <div class="analytics-card">
+              <div class="card-icon" aria-hidden="true">📊</div>
+              <div class="card-content">
+                <div class="card-value">{{completionRate}}%</div>
+                <div class="card-label">Completion Rate</div>
+              </div>
+            </div>
+          {{/if}}
+
+          {{#if lastActiveDate}}
+            <div class="analytics-card">
+              <div class="card-icon" aria-hidden="true">📅</div>
+              <div class="card-content">
+                <div class="card-value">{{formatRelativeDate lastActiveDate}}</div>
+                <div class="card-label">Last Active</div>
+              </div>
+            </div>
+          {{/if}}
+        </div>
+      </div>
+    {{/if}}
+
+    <!-- Next Steps -->
+    <div class="next-steps">
+      <h3 class="section-title">
+        <span class="section-icon" aria-hidden="true">🎯</span>
+        What's Next?
+      </h3>
+      
+      <div class="next-steps-content">
+        {{#if nextSession}}
+          <div class="next-step-item primary">
+            <div class="step-icon" aria-hidden="true">▶️</div>
+            <div class="step-content">
+              <h4 class="step-title">Continue Learning</h4>
+              <p class="step-description">
+                Next up: Session {{nextSession.number}} - {{nextSession.title}}
+              </p>
+              <a href="{{nextSession.url}}" class="step-action">
+                <span class="action-text">Start Session</span>
+                <span class="action-icon" aria-hidden="true">→</span>
+              </a>
+            </div>
+          </div>
+        {{else if (eq overallProgress 100)}}
+          <div class="next-step-item completed">
+            <div class="step-icon" aria-hidden="true">🎉</div>
+            <div class="step-content">
+              <h4 class="step-title">Congratulations!</h4>
+              <p class="step-description">
+                You've completed the entire course! Well done on your learning journey.
+              </p>
+              {{#if certificateAvailable}}
+                <button class="step-action" onclick="downloadCertificate()">
+                  <span class="action-text">Download Certificate</span>
+                  <span class="action-icon" aria-hidden="true">📜</span>
+                </button>
+              {{/if}}
+            </div>
+          </div>
+        {{/if}}
+
+        {{#if recommendedReview}}
+          <div class="next-step-item secondary">
+            <div class="step-icon" aria-hidden="true">🔄</div>
+            <div class="step-content">
+              <h4 class="step-title">Review Recommended</h4>
+              <p class="step-description">
+                Consider reviewing Session {{recommendedReview.number}} to reinforce your learning.
+              </p>
+              <a href="{{recommendedReview.url}}" class="step-action">
+                <span class="action-text">Review Session</span>
+                <span class="action-icon" aria-hidden="true">↻</span>
+              </a>
+            </div>
+          </div>
+        {{/if}}
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// Progress tracking functionality
+function updateProgress(sessionId, activityId, completed) {
+  // This would integrate with the progress tracking system
+  console.log(`Progress update: Session ${sessionId}, Activity ${activityId}, Completed: ${completed}`);
+  
+  // Update local storage or send to server
+  const progressData = {
+    sessionId,
+    activityId,
+    completed,
+    timestamp: new Date().toISOString()
+  };
+  
+  // Save to localStorage as backup
+  const savedProgress = JSON.parse(localStorage.getItem('courseProgress') || '{}');
+  if (!savedProgress[sessionId]) {
+    savedProgress[sessionId] = {};
+  }
+  savedProgress[sessionId][activityId] = progressData;
+  localStorage.setItem('courseProgress', JSON.stringify(savedProgress));
+  
+  // Update UI
+  updateProgressUI();
+}
+
+function updateProgressUI() {
+  // Recalculate and update progress bars and statistics
+  // This would be implemented based on the progress tracking system
+}
+
+function downloadCertificate() {
+  // Implementation for certificate download
+  console.log('Certificate download functionality would be implemented here');
+}
+
+// Initialize progress tracking
+document.addEventListener('DOMContentLoaded', function() {
+  // Load saved progress from localStorage
+  const savedProgress = JSON.parse(localStorage.getItem('courseProgress') || '{}');
+  
+  // Apply saved progress to UI
+  // This would be implemented based on the specific progress tracking needs
+  
+  // Set up progress tracking for activities
+  document.querySelectorAll('.activity-progress-item').forEach(item => {
+    item.addEventListener('click', function() {
+      const sessionId = this.closest('[data-session-id]').dataset.sessionId;
+      const activityId = this.dataset.activityId;
+      const completed = !this.classList.contains('completed');
+      
+      updateProgress(sessionId, activityId, completed);
+    });
+  });
+});
+
+// Milestone celebration
+function celebrateMilestone(percentage) {
+  const milestones = [25, 50, 75, 100];
+  if (milestones.includes(percentage)) {
+    // Show celebration animation or notification
+    const celebration = document.createElement('div');
+    celebration.className = 'milestone-celebration';
+    celebration.innerHTML = `
+      <div class="celebration-content">
+        <div class="celebration-icon">🎉</div>
+        <div class="celebration-text">${percentage}% Complete!</div>
+      </div>
+    `;
+    document.body.appendChild(celebration);
+    
+    setTimeout(() => {
+      celebration.remove();
+    }, 3000);
+  }
+}
+</script>

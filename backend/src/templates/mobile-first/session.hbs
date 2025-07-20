@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>{{session.title}} - {{course.title}}</title>
+    <link rel="stylesheet" href="assets/css/style.css">
+    {{#if options.customizations.customCSS}}
+    <style>
+        {{{options.customizations.customCSS}}}
+    </style>
+    {{/if}}
+    <meta name="theme-color" content="#2563eb">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+</head>
+<body class="mobile-optimized">
+    <div class="mobile-container">
+        <!-- Mobile Header -->
+        <header class="mobile-header">
+            <div class="header-top">
+                <button class="nav-toggle" aria-label="Navigation Menu">☰</button>
+                <h1 class="session-title-mobile">{{session.title}}</h1>
+                <div class="session-progress">{{add sessionIndex 1}}/{{totalSessions}}</div>
+            </div>
+            <div class="progress-bar-mobile">
+                <div class="progress-fill" style="width: {{multiply (divide (add sessionIndex 1) totalSessions) 100}}%"></div>
+            </div>
+        </header>
+
+        <!-- Mobile Navigation -->
+        <nav class="mobile-navigation" id="mobile-nav">
+            <div class="nav-content">
+                <a href="index.html" class="nav-item nav-home">
+                    <span class="nav-icon">🏠</span>
+                    <span class="nav-text">Course Home</span>
+                </a>
+                {{#if sessionIndex}}
+                <a href="session-{{sessionIndex}}.html" class="nav-item nav-prev">
+                    <span class="nav-icon">←</span>
+                    <span class="nav-text">Previous Session</span>
+                </a>
+                {{/if}}
+                {{#if (lt sessionIndex (sub totalSessions 1))}}
+                <a href="session-{{add sessionIndex 2}}.html" class="nav-item nav-next">
+                    <span class="nav-icon">→</span>
+                    <span class="nav-text">Next Session</span>
+                </a>
+                {{/if}}
+            </div>
+        </nav>
+
+        <!-- Session Info -->
+        <section class="session-info-mobile">
+            <div class="session-meta">
+                <span class="session-number">Session {{add sessionIndex 1}} of {{totalSessions}}</span>
+                <span class="session-duration">{{formatDuration session.estimated_duration}}</span>
+            </div>
+            <h2 class="session-title-full">{{session.title}}</h2>
+            {{#if session.description}}
+            <div class="session-description">
+                {{{markdown session.description}}}
+            </div>
+            {{/if}}
+        </section>
+
+        <!-- Session Content -->
+        <main class="session-content-mobile">
+            <div class="content-wrapper">
+                {{{session.content}}}
+            </div>
+        </main>
+
+        <!-- Activities -->
+        {{#if session.activities}}
+        <section class="activities-mobile">
+            <h3 class="activities-title">Activities</h3>
+            {{#each session.activities}}
+            <div class="activity-card" id="activity-{{id}}">
+                <div class="activity-header">
+                    <h4 class="activity-title">{{title}}</h4>
+                    <button class="activity-toggle" aria-label="Toggle activity details">+</button>
+                </div>
+                <div class="activity-content" data-activity="{{id}}">
+                    {{#if description}}
+                    <div class="activity-description">
+                        {{{markdown description}}}
+                    </div>
+                    {{/if}}
+                    <div class="activity-body">
+                        {{{content}}}
+                    </div>
+                </div>
+            </div>
+            {{/each}}
+        </section>
+        {{/if}}
+
+        <!-- Mobile Navigation Footer -->
+        <nav class="mobile-nav-footer">
+            <div class="nav-buttons">
+                {{#if sessionIndex}}
+                <a href="session-{{sessionIndex}}.html" class="nav-button nav-prev-mobile">
+                    <span class="nav-arrow">←</span>
+                    <div class="nav-content">
+                        <span class="nav-label">Previous</span>
+                        <span class="nav-title">Session {{sessionIndex}}</span>
+                    </div>
+                </a>
+                {{/if}}
+                
+                <a href="index.html" class="nav-button nav-home-mobile">
+                    <span class="nav-arrow">⌂</span>
+                    <div class="nav-content">
+                        <span class="nav-label">Course</span>
+                        <span class="nav-title">Overview</span>
+                    </div>
+                </a>
+                
+                {{#if (lt sessionIndex (sub totalSessions 1))}}
+                <a href="session-{{add sessionIndex 2}}.html" class="nav-button nav-next-mobile">
+                    <div class="nav-content">
+                        <span class="nav-label">Next</span>
+                        <span class="nav-title">Session {{add sessionIndex 2}}</span>
+                    </div>
+                    <span class="nav-arrow">→</span>
+                </a>
+                {{/if}}
+            </div>
+        </nav>
+
+        <!-- Mobile Footer -->
+        <footer class="mobile-footer">
+            {{#if options.customizations.footer}}
+            <div class="custom-footer">
+                {{{options.customizations.footer}}}
+            </div>
+            {{/if}}
+            {{#if options.customizations.organizationName}}
+            <div class="organization">{{options.customizations.organizationName}}</div>
+            {{/if}}
+            <div class="generated-by">Generated with AI Course Creator</div>
+        </footer>
+    </div>
+
+    <!-- Mobile-Optimized Scripts -->
+    <script>
+        // Mobile navigation toggle
+        const navToggle = document.querySelector('.nav-toggle');
+        const mobileNav = document.querySelector('.mobile-navigation');
+        
+        navToggle.addEventListener('click', function() {
+            mobileNav.classList.toggle('active');
+            this.textContent = mobileNav.classList.contains('active') ? '✕' : '☰';
+        });
+
+        // Close navigation when clicking outside
+        document.addEventListener('click', function(e) {
+            if (!mobileNav.contains(e.target) && !navToggle.contains(e.target)) {
+                mobileNav.classList.remove('active');
+                navToggle.textContent = '☰';
+            }
+        });
+
+        // Activity card toggles
+        document.querySelectorAll('.activity-toggle').forEach(toggle => {
+            toggle.addEventListener('click', function() {
+                const card = this.closest('.activity-card');
+                const content = card.querySelector('.activity-content');
+                const isExpanded = content.style.display === 'block';
+                
+                content.style.display = isExpanded ? 'none' : 'block';
+                this.textContent = isExpanded ? '+' : '−';
+                card.classList.toggle('expanded', !isExpanded);
+            });
+        });
+
+        // Touch gesture navigation
+        let startX = null;
+        let startY = null;
+        
+        document.addEventListener('touchstart', function(e) {
+            startX = e.touches[0].clientX;
+            startY = e.touches[0].clientY;
+        });
+        
+        document.addEventListener('touchend', function(e) {
+            if (!startX || !startY) return;
+            
+            const endX = e.changedTouches[0].clientX;
+            const endY = e.changedTouches[0].clientY;
+            const deltaX = endX - startX;
+            const deltaY = endY - startY;
+            
+            // Only trigger if horizontal swipe is dominant
+            if (Math.abs(deltaX) > Math.abs(deltaY) && Math.abs(deltaX) > 50) {
+                if (deltaX > 0 && document.querySelector('.nav-prev-mobile')) {
+                    // Swipe right - go to previous
+                    document.querySelector('.nav-prev-mobile').click();
+                } else if (deltaX < 0 && document.querySelector('.nav-next-mobile')) {
+                    // Swipe left - go to next
+                    document.querySelector('.nav-next-mobile').click();
+                }
+            }
+            
+            startX = null;
+            startY = null;
+        });
+
+        // Keyboard navigation
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'ArrowLeft' && document.querySelector('.nav-prev-mobile')) {
+                document.querySelector('.nav-prev-mobile').click();
+            } else if (e.key === 'ArrowRight' && document.querySelector('.nav-next-mobile')) {
+                document.querySelector('.nav-next-mobile').click();
+            } else if (e.key === 'Escape' && mobileNav.classList.contains('active')) {
+                mobileNav.classList.remove('active');
+                navToggle.textContent = '☰';
+            }
+        });
+
+        // Smooth scrolling for anchor links
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                const target = document.querySelector(this.getAttribute('href'));
+                if (target) {
+                    target.scrollIntoView({
+                        behavior: 'smooth',
+                        block: 'start'
+                    });
+                }
+            });
+        });
+
+        // Auto-hide navigation on scroll
+        let lastScrollY = window.scrollY;
+        const header = document.querySelector('.mobile-header');
+        
+        window.addEventListener('scroll', function() {
+            const currentScrollY = window.scrollY;
+            
+            if (currentScrollY > lastScrollY && currentScrollY > 100) {
+                // Scrolling down
+                header.classList.add('hidden');
+            } else {
+                // Scrolling up
+                header.classList.remove('hidden');
+            }
+            
+            lastScrollY = currentScrollY;
+        });
+    </script>
+</body>
+</html>

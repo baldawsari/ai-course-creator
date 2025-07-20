@@ -9,6 +9,9 @@ const { asyncHandler } = require('../middleware/errorHandling');
 const logger = require('../utils/logger');
 const Bull = require('bull');
 const { v4: uuidv4 } = require('uuid');
+const HTMLExporter = require('../services/htmlExporter');
+const PDFGenerator = require('../services/pdfGenerator');
+const PPTGenerator = require('../services/pptGenerator');
 
 const router = express.Router();
 
@@ -23,6 +26,11 @@ const exportQueue = new Bull('export-tasks', {
 // Export directory
 const EXPORT_DIR = process.env.EXPORT_DIR || path.join(process.cwd(), 'exports');
 const TEMPLATE_DIR = path.join(__dirname, '../templates');
+
+// Initialize HTML Exporter, PDF Generator, and PPT Generator
+const htmlExporter = new HTMLExporter();
+const pdfGenerator = new PDFGenerator();
+const pptGenerator = new PPTGenerator();
 
 // Validation schemas
 const htmlExportSchema = Joi.object({
@@ -47,6 +55,138 @@ const htmlExportSchema = Joi.object({
       organizationName: Joi.string().max(100),
       customCSS: Joi.string().max(10000),
       footer: Joi.string().max(500)
+    }).default({})
+  }).default({})
+});
+
+const pdfExportSchema = Joi.object({
+  courseId: Joi.string().uuid().required(),
+  template: Joi.string().valid(
+    'modern', 'classic', 'minimal', 'interactive', 'mobile-first'
+  ).default('modern'),
+  options: Joi.object({
+    format: Joi.string().valid('A4', 'Letter', 'Legal').default('A4'),
+    orientation: Joi.string().valid('portrait', 'landscape').default('portrait'),
+    includeTableOfContents: Joi.boolean().default(true),
+    includePageNumbers: Joi.boolean().default(true),
+    includeHeaderFooter: Joi.boolean().default(true),
+    optimize: Joi.boolean().default(false),
+    uploadToStorage: Joi.boolean().default(false),
+    customizations: Joi.object({
+      primaryColor: Joi.string().pattern(/^#[0-9A-F]{6}$/i).default('#007bff'),
+      fontFamily: Joi.string().default('Inter, sans-serif'),
+      logo: Joi.string().uri(),
+      headerText: Joi.string().max(100),
+      footerText: Joi.string().max(100)
+    }).default({}),
+    pdfOptions: Joi.object({
+      margin: Joi.object({
+        top: Joi.string().default('1in'),
+        bottom: Joi.string().default('1in'),
+        left: Joi.string().default('0.75in'),
+        right: Joi.string().default('0.75in')
+      }),
+      printBackground: Joi.boolean().default(true),
+      preferCSSPageSize: Joi.boolean().default(false)
+    }).default({})
+  }).default({})
+});
+
+const pptExportSchema = Joi.object({
+  courseId: Joi.string().uuid().required(),
+  template: Joi.string().valid(
+    'modern', 'classic', 'minimal', 'interactive', 'professional'
+  ).default('modern'),
+  options: Joi.object({
+    layout: Joi.string().valid('16x9', '4x3').default('16x9'),
+    includeTOC: Joi.boolean().default(true),
+    includeSummary: Joi.boolean().default(true),
+    includeActivities: Joi.boolean().default(true),
+    includeAssessments: Joi.boolean().default(true),
+    slidesPerSession: Joi.number().integer().min(1).max(10).default(3),
+    uploadToStorage: Joi.boolean().default(false),
+    branding: Joi.object({
+      logo: Joi.string().uri(),
+      organizationName: Joi.string().max(100),
+      colorScheme: Joi.object({
+        primary: Joi.string().pattern(/^#[0-9A-F]{6}$/i).default('#007bff'),
+        secondary: Joi.string().pattern(/^#[0-9A-F]{6}$/i).default('#6c757d'),
+        background: Joi.string().pattern(/^#[0-9A-F]{6}$/i).default('#ffffff')
+      }).default({}),
+      fontFamily: Joi.string().default('Arial')
+    }).default({}),
+    pptOptions: Joi.object({
+      title: Joi.string().max(100),
+      subject: Joi.string().max(200),
+      author: Joi.string().max(100),
+      rtlMode: Joi.boolean().default(false)
+    }).default({})
+  }).default({})
+});
+
+const bundleExportSchema = Joi.object({
+  courseId: Joi.string().uuid().required(),
+  formats: Joi.array().items(
+    Joi.string().valid('html', 'pdf', 'ppt')
+  ).min(1).max(3).required(),
+  template: Joi.string().valid(
+    'modern', 'classic', 'minimal', 'interactive', 'professional'
+  ).default('modern'),
+  options: Joi.object({
+    // HTML options
+    htmlOptions: Joi.object({
+      format: Joi.string().valid('single-page', 'multi-page', 'scorm').default('multi-page'),
+      includeAssets: Joi.boolean().default(true),
+      includeVideos: Joi.boolean().default(false),
+      includeAssessments: Joi.boolean().default(true),
+      includeNavigation: Joi.boolean().default(true),
+      theme: Joi.object({
+        primaryColor: Joi.string().pattern(/^#[0-9A-F]{6}$/i).default('#007bff'),
+        secondaryColor: Joi.string().pattern(/^#[0-9A-F]{6}$/i).default('#6c757d'),
+        fontFamily: Joi.string().default('Inter, sans-serif'),
+        fontSize: Joi.string().valid('small', 'medium', 'large').default('medium')
+      }).default({}),
+      branding: Joi.object({
+        logo: Joi.string().uri(),
+        organizationName: Joi.string().max(100),
+        customCSS: Joi.string().max(10000),
+        footer: Joi.string().max(500)
+      }).default({})
+    }).default({}),
+    // PDF options
+    pdfOptions: Joi.object({
+      format: Joi.string().valid('A4', 'Letter', 'Legal').default('A4'),
+      orientation: Joi.string().valid('portrait', 'landscape').default('portrait'),
+      includeTableOfContents: Joi.boolean().default(true),
+      includePageNumbers: Joi.boolean().default(true),
+      includeHeaderFooter: Joi.boolean().default(true),
+      optimize: Joi.boolean().default(false),
+      customizations: Joi.object({
+        primaryColor: Joi.string().pattern(/^#[0-9A-F]{6}$/i).default('#007bff'),
+        fontFamily: Joi.string().default('Inter, sans-serif'),
+        logo: Joi.string().uri(),
+        headerText: Joi.string().max(100),
+        footerText: Joi.string().max(100)
+      }).default({})
+    }).default({}),
+    // PowerPoint options
+    pptOptions: Joi.object({
+      layout: Joi.string().valid('16x9', '4x3').default('16x9'),
+      includeTOC: Joi.boolean().default(true),
+      includeSummary: Joi.boolean().default(true),
+      includeActivities: Joi.boolean().default(true),
+      includeAssessments: Joi.boolean().default(true),
+      slidesPerSession: Joi.number().integer().min(1).max(10).default(3),
+      branding: Joi.object({
+        logo: Joi.string().uri(),
+        organizationName: Joi.string().max(100),
+        colorScheme: Joi.object({
+          primary: Joi.string().pattern(/^#[0-9A-F]{6}$/i).default('#007bff'),
+          secondary: Joi.string().pattern(/^#[0-9A-F]{6}$/i).default('#6c757d'),
+          background: Joi.string().pattern(/^#[0-9A-F]{6}$/i).default('#ffffff')
+        }).default({}),
+        fontFamily: Joi.string().default('Arial')
+      }).default({})
     }).default({})
   }).default({})
 });
@@ -161,6 +301,294 @@ router.post('/html', authenticateToken, requirePermission('export', 'create'), a
     });
   } catch (error) {
     logger.error('Failed to start HTML export:', error);
+    res.status(500).json({
+      error: 'Failed to start export',
+      message: error.message
+    });
+  }
+}));
+
+/**
+ * POST /export/pdf - Generate PDF export
+ */
+router.post('/pdf', authenticateToken, requirePermission('export', 'create'), asyncHandler(async (req, res) => {
+  const { error: validationError, value: validatedData } = pdfExportSchema.validate(req.body);
+  
+  if (validationError) {
+    return res.status(400).json({
+      error: 'Validation failed',
+      details: validationError.details.map(d => d.message)
+    });
+  }
+
+  const { courseId, template, options } = validatedData;
+
+  // Check course access and get course data
+  const { data: course, error: courseError } = await supabaseAdmin
+    .from('courses')
+    .select(`
+      *,
+      course_sessions(*),
+      course_resources(*)
+    `)
+    .eq('id', courseId)
+    .single();
+
+  if (courseError || !course) {
+    return res.status(404).json({ error: 'Course not found' });
+  }
+
+  if (course.user_id !== req.user.id && !req.user.permissions.includes('courses:read')) {
+    return res.status(403).json({ error: 'Access denied' });
+  }
+
+  // Check if course has content
+  if (!course.course_sessions || course.course_sessions.length === 0) {
+    return res.status(400).json({ 
+      error: 'Course has no sessions to export' 
+    });
+  }
+
+  try {
+    const exportId = uuidv4();
+    
+    // Create export job record
+    const { error: jobError } = await supabaseAdmin
+      .from('export_jobs')
+      .insert({
+        id: exportId,
+        course_id: courseId,
+        user_id: req.user.id,
+        type: 'pdf',
+        status: 'pending',
+        progress: 0,
+        template,
+        options,
+        created_at: new Date().toISOString()
+      });
+
+    if (jobError) throw jobError;
+
+    // Add to export queue
+    await exportQueue.add('pdf-export', {
+      exportId,
+      courseId,
+      userId: req.user.id,
+      template,
+      options,
+      course
+    }, {
+      attempts: 3,
+      backoff: {
+        type: 'exponential',
+        delay: 5000
+      }
+    });
+
+    logger.info(`PDF export job created: ${exportId} for course ${courseId}`);
+    
+    res.status(202).json({
+      message: 'PDF export started',
+      exportId,
+      template,
+      statusUrl: `/api/export/status/${exportId}`,
+      downloadUrl: `/api/export/download/${exportId}`
+    });
+  } catch (error) {
+    logger.error('Failed to start PDF export:', error);
+    res.status(500).json({
+      error: 'Failed to start export',
+      message: error.message
+    });
+  }
+}));
+
+/**
+ * POST /export/ppt - Generate PowerPoint export
+ */
+router.post('/ppt', authenticateToken, requirePermission('export', 'create'), asyncHandler(async (req, res) => {
+  const { error: validationError, value: validatedData } = pptExportSchema.validate(req.body);
+  
+  if (validationError) {
+    return res.status(400).json({
+      error: 'Validation failed',
+      details: validationError.details.map(d => d.message)
+    });
+  }
+
+  const { courseId, template, options } = validatedData;
+
+  // Check course access and get course data
+  const { data: course, error: courseError } = await supabaseAdmin
+    .from('courses')
+    .select(`
+      *,
+      course_sessions(*),
+      course_resources(*)
+    `)
+    .eq('id', courseId)
+    .single();
+
+  if (courseError || !course) {
+    return res.status(404).json({ error: 'Course not found' });
+  }
+
+  if (course.user_id !== req.user.id && !req.user.permissions.includes('courses:read')) {
+    return res.status(403).json({ error: 'Access denied' });
+  }
+
+  // Check if course has content
+  if (!course.course_sessions || course.course_sessions.length === 0) {
+    return res.status(400).json({ 
+      error: 'Course has no sessions to export' 
+    });
+  }
+
+  try {
+    const exportId = uuidv4();
+    
+    // Create export job record
+    const { error: jobError } = await supabaseAdmin
+      .from('export_jobs')
+      .insert({
+        id: exportId,
+        course_id: courseId,
+        user_id: req.user.id,
+        type: 'ppt',
+        status: 'pending',
+        progress: 0,
+        template,
+        options,
+        created_at: new Date().toISOString()
+      });
+
+    if (jobError) throw jobError;
+
+    // Add to export queue
+    await exportQueue.add('ppt-export', {
+      exportId,
+      courseId,
+      userId: req.user.id,
+      template,
+      options,
+      course
+    }, {
+      attempts: 3,
+      backoff: {
+        type: 'exponential',
+        delay: 5000
+      }
+    });
+
+    logger.info(`PowerPoint export job created: ${exportId} for course ${courseId}`);
+    
+    res.status(202).json({
+      message: 'PowerPoint export started',
+      exportId,
+      template,
+      statusUrl: `/api/export/status/${exportId}`,
+      downloadUrl: `/api/export/download/${exportId}`
+    });
+  } catch (error) {
+    logger.error('Failed to start PowerPoint export:', error);
+    res.status(500).json({
+      error: 'Failed to start export',
+      message: error.message
+    });
+  }
+}));
+
+/**
+ * POST /export/bundle - Generate multiple format bundle export
+ */
+router.post('/bundle', authenticateToken, requirePermission('export', 'create'), asyncHandler(async (req, res) => {
+  const { error: validationError, value: validatedData } = bundleExportSchema.validate(req.body);
+  
+  if (validationError) {
+    return res.status(400).json({
+      error: 'Validation failed',
+      details: validationError.details.map(d => d.message)
+    });
+  }
+
+  const { courseId, formats, template, options } = validatedData;
+
+  // Check course access and get course data
+  const { data: course, error: courseError } = await supabaseAdmin
+    .from('courses')
+    .select(`
+      *,
+      course_sessions(*),
+      course_resources(*)
+    `)
+    .eq('id', courseId)
+    .single();
+
+  if (courseError || !course) {
+    return res.status(404).json({ error: 'Course not found' });
+  }
+
+  if (course.user_id !== req.user.id && !req.user.permissions.includes('courses:read')) {
+    return res.status(403).json({ error: 'Access denied' });
+  }
+
+  // Check if course has content
+  if (!course.course_sessions || course.course_sessions.length === 0) {
+    return res.status(400).json({ 
+      error: 'Course has no sessions to export' 
+    });
+  }
+
+  try {
+    const exportId = uuidv4();
+    
+    // Create export job record
+    const { error: jobError } = await supabaseAdmin
+      .from('export_jobs')
+      .insert({
+        id: exportId,
+        course_id: courseId,
+        user_id: req.user.id,
+        type: 'bundle',
+        status: 'pending',
+        progress: 0,
+        template,
+        options: { ...options, formats },
+        metadata: { formats },
+        created_at: new Date().toISOString()
+      });
+
+    if (jobError) throw jobError;
+
+    // Add to export queue
+    await exportQueue.add('bundle-export', {
+      exportId,
+      courseId,
+      userId: req.user.id,
+      template,
+      formats,
+      options,
+      course
+    }, {
+      attempts: 3,
+      backoff: {
+        type: 'exponential',
+        delay: 5000
+      }
+    });
+
+    logger.info(`Bundle export job created: ${exportId} for course ${courseId} with formats: ${formats.join(', ')}`);
+    
+    res.status(202).json({
+      message: 'Bundle export started',
+      exportId,
+      template,
+      formats,
+      statusUrl: `/api/export/status/${exportId}`,
+      downloadUrl: `/api/export/download/${exportId}`
+    });
+  } catch (error) {
+    logger.error('Failed to start bundle export:', error);
     res.status(500).json({
       error: 'Failed to start export',
       message: error.message
@@ -346,10 +774,28 @@ router.get('/download/:exportId', authenticateToken, asyncHandler(async (req, re
       .eq('id', exportJob.course_id)
       .single();
 
-    const fileName = `${sanitizeFileName(course?.title || 'course')}-${exportJob.template}.zip`;
+    // Determine file extension and content type based on export type
+    let fileExtension, contentType;
+    
+    if (exportJob.type === 'pdf') {
+      fileExtension = 'pdf';
+      contentType = 'application/pdf';
+    } else if (exportJob.type === 'ppt') {
+      fileExtension = 'pptx';
+      contentType = 'application/vnd.openxmlformats-officedocument.presentationml.presentation';
+    } else if (exportJob.type === 'bundle') {
+      fileExtension = 'zip';
+      contentType = 'application/zip';
+    } else {
+      // HTML and custom HTML exports
+      fileExtension = 'zip';
+      contentType = 'application/zip';
+    }
+    
+    const fileName = `${sanitizeFileName(course?.title || 'course')}-${exportJob.template}.${fileExtension}`;
     
     // Set download headers
-    res.setHeader('Content-Type', 'application/zip');
+    res.setHeader('Content-Type', contentType);
     res.setHeader('Content-Disposition', `attachment; filename="${fileName}"`);
     
     // Update download stats
@@ -515,7 +961,7 @@ router.get('/history', authenticateToken, asyncHandler(async (req, res) => {
     if (error) throw error;
 
     // Transform data
-    const transformedExports = exports.map(exportJob => ({
+    const transformedExports = await Promise.all(exports.map(async exportJob => ({
       id: exportJob.id,
       courseId: exportJob.course_id,
       courseTitle: exportJob.courses?.title,
@@ -527,7 +973,7 @@ router.get('/history', authenticateToken, asyncHandler(async (req, res) => {
       completedAt: exportJob.completed_at,
       downloadCount: exportJob.download_count || 0,
       fileSize: exportJob.file_path ? await getFileSize(path.join(EXPORT_DIR, exportJob.file_path)) : null
-    }));
+    })));
 
     res.json({
       exports: transformedExports,
@@ -617,6 +1063,9 @@ function estimateExportCompletion(exportJob) {
   const baseEstimate = {
     'html': 120, // 2 minutes
     'html-custom': 180, // 3 minutes
+    'pdf': 150, // 2.5 minutes
+    'ppt': 90, // 1.5 minutes
+    'bundle': 300, // 5 minutes (multiple formats)
     'scorm': 300 // 5 minutes
   };
 
@@ -690,6 +1139,63 @@ exportQueue.process('html-custom-export', async (job) => {
   }
 });
 
+// PDF Export Worker
+exportQueue.process('pdf-export', async (job) => {
+  const { exportId, courseId, userId, template, options, course } = job.data;
+  
+  try {
+    await updateExportStatus(exportId, 'processing', 10, 'Starting PDF generation...');
+    
+    // Generate PDF export
+    const exportPath = await generatePDFExport(course, template, options, exportId, job);
+    
+    await updateExportStatus(exportId, 'completed', 100, 'PDF export completed', exportPath);
+    
+    logger.info(`PDF export completed: ${exportId}`);
+  } catch (error) {
+    await updateExportStatus(exportId, 'failed', null, error.message);
+    throw error;
+  }
+});
+
+// PowerPoint Export Worker
+exportQueue.process('ppt-export', async (job) => {
+  const { exportId, courseId, userId, template, options, course } = job.data;
+  
+  try {
+    await updateExportStatus(exportId, 'processing', 10, 'Starting PowerPoint generation...');
+    
+    // Generate PowerPoint export
+    const exportPath = await generatePPTExport(course, template, options, exportId, job);
+    
+    await updateExportStatus(exportId, 'completed', 100, 'PowerPoint export completed', exportPath);
+    
+    logger.info(`PowerPoint export completed: ${exportId}`);
+  } catch (error) {
+    await updateExportStatus(exportId, 'failed', null, error.message);
+    throw error;
+  }
+});
+
+// Bundle Export Worker
+exportQueue.process('bundle-export', async (job) => {
+  const { exportId, courseId, userId, template, formats, options, course } = job.data;
+  
+  try {
+    await updateExportStatus(exportId, 'processing', 10, 'Starting bundle generation...');
+    
+    // Generate bundle export
+    const exportPath = await generateBundleExport(course, template, formats, options, exportId, job);
+    
+    await updateExportStatus(exportId, 'completed', 100, 'Bundle export completed', exportPath);
+    
+    logger.info(`Bundle export completed: ${exportId} with formats: ${formats.join(', ')}`);
+  } catch (error) {
+    await updateExportStatus(exportId, 'failed', null, error.message);
+    throw error;
+  }
+});
+
 async function updateExportStatus(exportId, status, progress, message, filePath = null) {
   const updates = {
     status,
@@ -709,206 +1215,294 @@ async function updateExportStatus(exportId, status, progress, message, filePath 
 }
 
 async function generateHTMLExport(course, template, options, exportId, job, customizations = null) {
-  // This would contain the actual HTML generation logic
-  // For now, this is a placeholder that creates a simple export
-  
-  const exportDir = path.join(EXPORT_DIR, exportId);
-  await fs.mkdir(exportDir, { recursive: true });
-  
-  // Update progress
-  await job.progress(30);
-  await updateExportStatus(exportId, 'processing', 30, 'Generating course content...');
-  
-  // Generate HTML files
-  await generateCourseHTML(course, template, options, exportDir, customizations);
-  
-  // Update progress
-  await job.progress(60);
-  await updateExportStatus(exportId, 'processing', 60, 'Adding assets and styling...');
-  
-  // Copy assets if requested
-  if (options.includeAssets) {
-    await copyAssets(template, exportDir);
-  }
-  
-  // Update progress
-  await job.progress(80);
-  await updateExportStatus(exportId, 'processing', 80, 'Creating archive...');
-  
-  // Create ZIP archive
-  const zipPath = path.join(EXPORT_DIR, `${exportId}.zip`);
-  await createZipArchive(exportDir, zipPath);
-  
-  // Cleanup temporary directory
-  await fs.rmdir(exportDir, { recursive: true });
-  
-  return `${exportId}.zip`;
-}
-
-async function generateCourseHTML(course, template, options, exportDir, customizations) {
-  // Sort sessions by sequence
-  const sessions = course.course_sessions.sort((a, b) => a.sequence_number - b.sequence_number);
-  
-  // Generate main HTML structure
-  const htmlContent = generateCourseHTMLContent(course, sessions, template, options, customizations);
-  
-  if (options.format === 'single-page') {
-    await fs.writeFile(path.join(exportDir, 'index.html'), htmlContent);
-  } else {
-    // Multi-page format
-    await generateMultiPageHTML(course, sessions, template, options, exportDir, customizations);
-  }
-}
-
-function generateCourseHTMLContent(course, sessions, template, options, customizations) {
-  // This would contain the actual HTML template generation logic
-  // Placeholder implementation
-  return `
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>${course.title}</title>
-    <link rel="stylesheet" href="assets/css/${template}.css">
-</head>
-<body>
-    <header>
-        <h1>${course.title}</h1>
-        <p>${course.description}</p>
-    </header>
-    <main>
-        ${sessions.map(session => `
-            <section class="session">
-                <h2>${session.title}</h2>
-                <p>${session.description}</p>
-                <div class="content">
-                    ${JSON.stringify(session.content)}
-                </div>
-            </section>
-        `).join('')}
-    </main>
-    <footer>
-        <p>Generated with AI Course Creator</p>
-    </footer>
-</body>
-</html>
-  `;
-}
-
-async function generateMultiPageHTML(course, sessions, template, options, exportDir, customizations) {
-  // Generate index page
-  const indexContent = generateIndexPage(course, sessions, template, options);
-  await fs.writeFile(path.join(exportDir, 'index.html'), indexContent);
-  
-  // Generate session pages
-  for (const session of sessions) {
-    const sessionContent = generateSessionPage(session, course, template, options);
-    await fs.writeFile(path.join(exportDir, `session-${session.sequence_number}.html`), sessionContent);
+  try {
+    // Update progress
+    await job.progress(20);
+    await updateExportStatus(exportId, 'processing', 20, 'Initializing HTML export...');
+    
+    // Prepare export options
+    const exportOptions = {
+      ...options,
+      exportType: options.format === 'single-page' ? 'single-page' : 'multi-page',
+      customizations: customizations || options.theme || {},
+      createArchive: true
+    };
+    
+    // Update progress
+    await job.progress(30);
+    await updateExportStatus(exportId, 'processing', 30, 'Generating HTML content...');
+    
+    // Use the HTML exporter service
+    const result = await htmlExporter.generateHTMLExport(
+      course.id,
+      template,
+      exportOptions,
+      exportId
+    );
+    
+    // Update progress
+    await job.progress(70);
+    await updateExportStatus(exportId, 'processing', 70, 'Creating archive...');
+    
+    // Move the archive to the expected location
+    const finalArchivePath = path.join(EXPORT_DIR, `${exportId}.zip`);
+    if (result.archivePath && result.archivePath !== finalArchivePath) {
+      await fs.rename(result.archivePath, finalArchivePath);
+    }
+    
+    // Update progress
+    await job.progress(90);
+    await updateExportStatus(exportId, 'processing', 90, 'Finalizing export...');
+    
+    // Cleanup temporary files
+    if (result.outputPath) {
+      await fs.rmdir(result.outputPath, { recursive: true }).catch(() => {});
+    }
+    
+    return `${exportId}.zip`;
+  } catch (error) {
+    logger.error(`HTML export failed for ${exportId}:`, error);
+    throw error;
   }
 }
 
-function generateIndexPage(course, sessions, template, options) {
-  // Placeholder index page generator
-  return `
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>${course.title}</title>
-    <link rel="stylesheet" href="assets/css/${template}.css">
-</head>
-<body>
-    <header>
-        <h1>${course.title}</h1>
-        <p>${course.description}</p>
-    </header>
-    <main>
-        <nav class="course-nav">
-            <ul>
-                ${sessions.map(session => `
-                    <li><a href="session-${session.sequence_number}.html">${session.title}</a></li>
-                `).join('')}
-            </ul>
-        </nav>
-    </main>
-</body>
-</html>
-  `;
+async function generatePDFExport(course, template, options, exportId, job) {
+  try {
+    // Update progress
+    await job.progress(20);
+    await updateExportStatus(exportId, 'processing', 20, 'Initializing PDF export...');
+    
+    // Update progress
+    await job.progress(30);
+    await updateExportStatus(exportId, 'processing', 30, 'Generating PDF content...');
+    
+    // Use the PDF generator service
+    const result = await pdfGenerator.generatePDF(
+      course,
+      template,
+      {
+        ...options,
+        pdfId: exportId
+      }
+    );
+    
+    // Update progress
+    await job.progress(80);
+    await updateExportStatus(exportId, 'processing', 80, 'Finalizing PDF...');
+    
+    // Move the PDF to the expected location
+    const finalPdfPath = path.join(EXPORT_DIR, `${exportId}.pdf`);
+    if (result.pdfPath && result.pdfPath !== finalPdfPath) {
+      await fs.rename(result.pdfPath, finalPdfPath);
+    }
+    
+    // Update progress
+    await job.progress(90);
+    await updateExportStatus(exportId, 'processing', 90, 'PDF export complete...');
+    
+    return `${exportId}.pdf`;
+  } catch (error) {
+    logger.error(`PDF export failed for ${exportId}:`, error);
+    throw error;
+  }
 }
 
-function generateSessionPage(session, course, template, options) {
-  // Placeholder session page generator
-  return `
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>${session.title} - ${course.title}</title>
-    <link rel="stylesheet" href="assets/css/${template}.css">
-</head>
-<body>
-    <header>
-        <h1>${session.title}</h1>
-        <a href="index.html">← Back to Course</a>
-    </header>
-    <main>
-        <div class="session-content">
-            <p>${session.description}</p>
-            <div class="content">
-                ${JSON.stringify(session.content)}
-            </div>
-        </div>
-    </main>
-</body>
-</html>
-  `;
+async function generatePPTExport(course, template, options, exportId, job) {
+  try {
+    // Update progress
+    await job.progress(20);
+    await updateExportStatus(exportId, 'processing', 20, 'Initializing PowerPoint export...');
+    
+    // Prepare export options
+    const exportOptions = {
+      ...options,
+      pptId: exportId,
+      uploadToStorage: options.uploadToStorage || false,
+      branding: options.branding || {}
+    };
+    
+    // Update progress
+    await job.progress(30);
+    await updateExportStatus(exportId, 'processing', 30, 'Generating PowerPoint slides...');
+    
+    // Use the PowerPoint generator service
+    const result = await pptGenerator.generatePowerPoint(
+      course,
+      template,
+      exportOptions
+    );
+    
+    // Update progress
+    await job.progress(80);
+    await updateExportStatus(exportId, 'processing', 80, 'Finalizing PowerPoint...');
+    
+    // Move the PowerPoint to the expected location
+    const finalPptPath = path.join(EXPORT_DIR, `${exportId}.pptx`);
+    if (result.pptPath && result.pptPath !== finalPptPath) {
+      await fs.rename(result.pptPath, finalPptPath);
+    }
+    
+    // Update progress
+    await job.progress(90);
+    await updateExportStatus(exportId, 'processing', 90, 'PowerPoint export complete...');
+    
+    return `${exportId}.pptx`;
+  } catch (error) {
+    logger.error(`PowerPoint export failed for ${exportId}:`, error);
+    throw error;
+  }
 }
 
-async function copyAssets(template, exportDir) {
-  const assetsDir = path.join(exportDir, 'assets');
-  await fs.mkdir(assetsDir, { recursive: true });
-  
-  // Copy CSS
-  const cssDir = path.join(assetsDir, 'css');
-  await fs.mkdir(cssDir, { recursive: true });
-  
-  // This would copy actual template assets
-  const cssContent = generateTemplateCSS(template);
-  await fs.writeFile(path.join(cssDir, `${template}.css`), cssContent);
+async function generateBundleExport(course, template, formats, options, exportId, job) {
+  try {
+    const bundleDir = path.join(EXPORT_DIR, `bundle-${exportId}`);
+    await fs.mkdir(bundleDir, { recursive: true });
+    
+    const formatProgress = 80 / formats.length; // Reserve 20% for final packaging
+    let currentProgress = 20;
+    
+    const generatedFiles = [];
+    
+    for (let i = 0; i < formats.length; i++) {
+      const format = formats[i];
+      const startProgress = currentProgress;
+      const endProgress = currentProgress + formatProgress;
+      
+      await updateExportStatus(exportId, 'processing', startProgress, `Generating ${format.toUpperCase()} export...`);
+      
+      try {
+        let filePath;
+        let fileName;
+        
+        if (format === 'html') {
+          // Generate HTML export
+          const htmlOptions = {
+            ...options.htmlOptions,
+            exportType: options.htmlOptions?.format === 'single-page' ? 'single-page' : 'multi-page',
+            createArchive: false // We'll create our own bundle archive
+          };
+          
+          const result = await htmlExporter.generateHTMLExport(
+            course.id,
+            template,
+            htmlOptions,
+            `${exportId}-html`
+          );
+          
+          // Move HTML output to bundle directory
+          fileName = `${sanitizeFileName(course.title || 'course')}-${template}-html`;
+          filePath = path.join(bundleDir, fileName);
+          
+          if (result.outputPath) {
+            await fs.rename(result.outputPath, filePath);
+          }
+          
+          generatedFiles.push({ format: 'html', fileName, path: filePath });
+          
+        } else if (format === 'pdf') {
+          // Generate PDF export
+          const pdfOptions = {
+            ...options.pdfOptions,
+            pdfId: `${exportId}-pdf`
+          };
+          
+          const result = await pdfGenerator.generatePDF(
+            course,
+            template,
+            pdfOptions
+          );
+          
+          // Move PDF to bundle directory
+          fileName = `${sanitizeFileName(course.title || 'course')}-${template}.pdf`;
+          filePath = path.join(bundleDir, fileName);
+          
+          if (result.pdfPath) {
+            await fs.rename(result.pdfPath, filePath);
+          }
+          
+          generatedFiles.push({ format: 'pdf', fileName, path: filePath });
+          
+        } else if (format === 'ppt') {
+          // Generate PowerPoint export
+          const pptOptions = {
+            ...options.pptOptions,
+            pptId: `${exportId}-ppt`,
+            uploadToStorage: false
+          };
+          
+          const result = await pptGenerator.generatePowerPoint(
+            course,
+            template,
+            pptOptions
+          );
+          
+          // Move PowerPoint to bundle directory
+          fileName = `${sanitizeFileName(course.title || 'course')}-${template}.pptx`;
+          filePath = path.join(bundleDir, fileName);
+          
+          if (result.pptPath) {
+            await fs.rename(result.pptPath, filePath);
+          }
+          
+          generatedFiles.push({ format: 'ppt', fileName, path: filePath });
+        }
+        
+        currentProgress = endProgress;
+        await job.progress(currentProgress);
+        
+      } catch (formatError) {
+        logger.error(`Failed to generate ${format} in bundle ${exportId}:`, formatError);
+        // Continue with other formats but log the error
+        generatedFiles.push({ 
+          format, 
+          fileName: `${format}-export-failed.txt`, 
+          error: formatError.message 
+        });
+      }
+    }
+    
+    // Create bundle archive
+    await updateExportStatus(exportId, 'processing', 85, 'Creating bundle archive...');
+    
+    const bundleArchivePath = path.join(EXPORT_DIR, `${exportId}.zip`);
+    await createZipArchive(bundleDir, bundleArchivePath);
+    
+    // Add bundle manifest
+    const manifest = {
+      exportId,
+      courseId: course.id,
+      courseTitle: course.title,
+      template,
+      formats,
+      generatedFiles: generatedFiles.map(f => ({
+        format: f.format,
+        fileName: f.fileName,
+        success: !f.error,
+        error: f.error || null
+      })),
+      createdAt: new Date().toISOString()
+    };
+    
+    const manifestPath = path.join(bundleDir, 'manifest.json');
+    await fs.writeFile(manifestPath, JSON.stringify(manifest, null, 2));
+    
+    // Recreate archive with manifest
+    await createZipArchive(bundleDir, bundleArchivePath);
+    
+    // Cleanup bundle directory
+    await fs.rmdir(bundleDir, { recursive: true }).catch(() => {});
+    
+    await job.progress(95);
+    await updateExportStatus(exportId, 'processing', 95, 'Bundle export finalized...');
+    
+    return `${exportId}.zip`;
+  } catch (error) {
+    logger.error(`Bundle export failed for ${exportId}:`, error);
+    throw error;
+  }
 }
 
-function generateTemplateCSS(template) {
-  // Placeholder CSS generator
-  const baseCSS = `
-    body { font-family: Arial, sans-serif; margin: 0; padding: 20px; }
-    header { border-bottom: 1px solid #ccc; margin-bottom: 20px; }
-    .session { margin-bottom: 30px; padding: 20px; border: 1px solid #ddd; }
-    .course-nav ul { list-style: none; padding: 0; }
-    .course-nav li { margin: 10px 0; }
-    .course-nav a { text-decoration: none; color: #007bff; }
-  `;
-  
-  const templateStyles = {
-    modern: `
-      body { background: #f8f9fa; }
-      .session { border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
-    `,
-    classic: `
-      body { background: white; }
-      .session { border: 2px solid #333; }
-    `,
-    minimal: `
-      body { background: white; font-size: 18px; line-height: 1.6; }
-      .session { border: none; border-left: 4px solid #007bff; }
-    `
-  };
-  
-  return baseCSS + (templateStyles[template] || '');
-}
-
+// Helper function to create archive if needed
 async function createZipArchive(sourceDir, zipPath) {
   const output = require('fs').createWriteStream(zipPath);
   const archive = archiver('zip', { zlib: { level: 9 } });

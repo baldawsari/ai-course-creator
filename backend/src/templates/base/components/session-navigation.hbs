@@ -1,0 +1,59 @@
+<nav class="session-navigation" role="navigation" aria-label="Session navigation">
+    <div class="nav-controls">
+        {{#if sessionIndex}}
+        <a href="session-{{sessionIndex}}.html" class="nav-button nav-prev" aria-label="Go to previous session">
+            <span class="nav-icon" aria-hidden="true">←</span>
+            <span class="nav-text">
+                <span class="nav-label">Previous</span>
+                <span class="nav-title">Session {{sessionIndex}}</span>
+            </span>
+        </a>
+        {{else}}
+        <div class="nav-button nav-disabled" aria-hidden="true">
+            <span class="nav-icon">←</span>
+            <span class="nav-text">
+                <span class="nav-label">Previous</span>
+                <span class="nav-title">None</span>
+            </span>
+        </div>
+        {{/if}}
+        
+        <a href="index.html" class="nav-button nav-home" aria-label="Return to course overview">
+            <span class="nav-icon" aria-hidden="true">🏠</span>
+            <span class="nav-text">
+                <span class="nav-label">Course</span>
+                <span class="nav-title">Overview</span>
+            </span>
+        </a>
+        
+        {{#if (lt sessionIndex (sub totalSessions 1))}}
+        <a href="session-{{add sessionIndex 2}}.html" class="nav-button nav-next" aria-label="Go to next session">
+            <span class="nav-text">
+                <span class="nav-label">Next</span>
+                <span class="nav-title">Session {{add sessionIndex 2}}</span>
+            </span>
+            <span class="nav-icon" aria-hidden="true">→</span>
+        </a>
+        {{else}}
+        <div class="nav-button nav-disabled" aria-hidden="true">
+            <span class="nav-text">
+                <span class="nav-label">Next</span>
+                <span class="nav-title">None</span>
+            </span>
+            <span class="nav-icon">→</span>
+        </div>
+        {{/if}}
+    </div>
+    
+    {{#if totalSessions}}
+    <div class="progress-container" role="region" aria-label="Course progress">
+        <div class="progress-bar" role="progressbar" aria-valuenow="{{multiply (divide (add sessionIndex 1) totalSessions) 100}}" aria-valuemin="0" aria-valuemax="100" aria-label="Course completion progress">
+            <div class="progress-fill" style="width: {{multiply (divide (add sessionIndex 1) totalSessions) 100}}%"></div>
+        </div>
+        <span class="progress-text">
+            Session {{add sessionIndex 1}} of {{totalSessions}}
+            <span class="progress-percentage">({{round (multiply (divide (add sessionIndex 1) totalSessions) 100)}}% complete)</span>
+        </span>
+    </div>
+    {{/if}}
+</nav>

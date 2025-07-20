@@ -1,0 +1,100 @@
+<footer class="site-footer" role="contentinfo">
+    <div class="footer-content">
+        {{#if options.customizations.footer}}
+        <div class="custom-footer">
+            {{{options.customizations.footer}}}
+        </div>
+        {{/if}}
+        
+        <div class="footer-info">
+            {{#if options.customizations.organizationName}}
+            <div class="organization">
+                <strong>{{options.customizations.organizationName}}</strong>
+                {{#if options.customizations.organizationUrl}}
+                <a href="{{options.customizations.organizationUrl}}" target="_blank" rel="noopener noreferrer" aria-describedby="external-link-description">
+                    Visit Website
+                    <span class="external-icon" aria-hidden="true">🔗</span>
+                </a>
+                {{/if}}
+            </div>
+            {{/if}}
+            
+            {{#if course.author}}
+            <div class="course-author">
+                <span class="author-label">Course Author:</span>
+                <span class="author-name">{{course.author}}</span>
+            </div>
+            {{/if}}
+            
+            {{#if course.created_at}}
+            <div class="course-date">
+                <span class="date-label">Created:</span>
+                <time datetime="{{isoDate course.created_at}}" class="date-value">
+                    {{formatDate course.created_at}}
+                </time>
+            </div>
+            {{/if}}
+            
+            {{#if course.updated_at}}
+            <div class="course-updated">
+                <span class="date-label">Last Updated:</span>
+                <time datetime="{{isoDate course.updated_at}}" class="date-value">
+                    {{formatDate course.updated_at}}
+                </time>
+            </div>
+            {{/if}}
+        </div>
+        
+        <div class="footer-branding">
+            <p class="generated-by">
+                Generated with 
+                <a href="https://ai-course-creator.com" target="_blank" rel="noopener noreferrer" aria-describedby="external-link-description">
+                    AI Course Creator
+                    <span class="external-icon" aria-hidden="true">🔗</span>
+                </a>
+            </p>
+        </div>
+        
+        {{#if options.showPrintInfo}}
+        <div class="print-info" aria-hidden="true">
+            <p class="print-date">Printed on: <span id="print-date"></span></p>
+            <p class="print-url">Source: <span id="print-url"></span></p>
+        </div>
+        {{/if}}
+    </div>
+    
+    <!-- Keyboard shortcuts help -->
+    {{#if options.showKeyboardHelp}}
+    <details class="keyboard-help">
+        <summary class="help-toggle">⌨️ Keyboard Shortcuts</summary>
+        <div class="help-content">
+            <dl class="shortcut-list">
+                <dt class="shortcut-key">Alt + ←</dt>
+                <dd class="shortcut-description">Previous session</dd>
+                
+                <dt class="shortcut-key">Alt + →</dt>
+                <dd class="shortcut-description">Next session</dd>
+                
+                <dt class="shortcut-key">Alt + H</dt>
+                <dd class="shortcut-description">Course home</dd>
+                
+                <dt class="shortcut-key">Tab / Shift + Tab</dt>
+                <dd class="shortcut-description">Navigate interactive elements</dd>
+                
+                <dt class="shortcut-key">Enter / Space</dt>
+                <dd class="shortcut-description">Activate buttons and links</dd>
+            </dl>
+        </div>
+    </details>
+    {{/if}}
+</footer>
+
+<script>
+// Update print information
+if (document.querySelector('#print-date')) {
+    document.querySelector('#print-date').textContent = new Date().toLocaleDateString();
+}
+if (document.querySelector('#print-url')) {
+    document.querySelector('#print-url').textContent = window.location.href;
+}
+</script>

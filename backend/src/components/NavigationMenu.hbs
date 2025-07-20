@@ -1,0 +1,340 @@
+{{!-- NavigationMenu Component - Course navigation with session links and progress --}}
+<nav class="navigation-menu" role="navigation" aria-label="Course Navigation">
+  <div class="nav-header">
+    <h2 class="nav-title">
+      <span class="nav-icon" aria-hidden="true">🧭</span>
+      Course Navigation
+    </h2>
+    {{#if course.sessions}}
+      <div class="nav-summary">
+        <span class="nav-sessions-count">{{course.sessions.length}} sessions</span>
+        {{#if course.totalDuration}}
+          <span class="nav-total-duration">{{formatDuration course.totalDuration}}</span>
+        {{/if}}
+      </div>
+    {{/if}}
+  </div>
+
+  <div class="nav-content">
+    {{#if showCourseOverview}}
+      <div class="nav-section nav-overview">
+        <a href="#course-overview" class="nav-item nav-overview-link {{#if (eq currentPage 'overview')}}active{{/if}}">
+          <div class="nav-item-content">
+            <span class="nav-item-icon" aria-hidden="true">🏠</span>
+            <div class="nav-item-text">
+              <span class="nav-item-title">Course Overview</span>
+              <span class="nav-item-subtitle">Introduction and objectives</span>
+            </div>
+          </div>
+          {{#if (eq currentPage 'overview')}}
+            <span class="nav-item-indicator" aria-hidden="true">▶</span>
+          {{/if}}
+        </a>
+      </div>
+    {{/if}}
+
+    {{#if course.sessions}}
+      <div class="nav-section nav-sessions">
+        <h3 class="nav-section-title">
+          <span class="section-icon" aria-hidden="true">📚</span>
+          Course Sessions
+        </h3>
+        
+        <div class="nav-sessions-list">
+          {{#each course.sessions}}
+            <div class="nav-session-item" data-session-id="{{id}}">
+              <a href="{{#if ../multiPage}}session-{{add @index 1}}.html{{else}}#session-{{id}}{{/if}}" 
+                 class="nav-session-link {{#if (eq ../currentSessionId id)}}active{{/if}} {{#if completed}}completed{{/if}} {{#if locked}}locked{{/if}}">
+                
+                <div class="nav-session-content">
+                  <div class="nav-session-header">
+                    <span class="nav-session-number">{{add @index 1}}</span>
+                    <div class="nav-session-status">
+                      {{#if completed}}
+                        <span class="status-icon completed" aria-label="Completed" title="Completed">✅</span>
+                      {{else if locked}}
+                        <span class="status-icon locked" aria-label="Locked" title="Locked">🔒</span>
+                      {{else if (eq ../currentSessionId id)}}
+                        <span class="status-icon current" aria-label="Current" title="Current Session">▶️</span>
+                      {{else}}
+                        <span class="status-icon pending" aria-label="Pending" title="Not Started">⭕</span>
+                      {{/if}}
+                    </div>
+                  </div>
+                  
+                  <div class="nav-session-info">
+                    <h4 class="nav-session-title">{{title}}</h4>
+                    {{#if description}}
+                      <p class="nav-session-description">{{truncate description 80}}</p>
+                    {{/if}}
+                    
+                    <div class="nav-session-meta">
+                      {{#if estimated_duration}}
+                        <span class="session-duration">
+                          <span class="duration-icon" aria-hidden="true">⏱️</span>
+                          {{formatDuration estimated_duration}}
+                        </span>
+                      {{/if}}
+                      
+                      {{#if activities}}
+                        <span class="session-activities">
+                          <span class="activities-icon" aria-hidden="true">📝</span>
+                          {{activities.length}} activities
+                        </span>
+                      {{/if}}
+                      
+                      {{#if difficulty}}
+                        <span class="session-difficulty difficulty-{{difficulty}}">
+                          <span class="difficulty-icon" aria-hidden="true">
+                            {{#switch difficulty}}
+                              {{#case "easy"}}🟢{{/case}}
+                              {{#case "medium"}}🟡{{/case}}
+                              {{#case "hard"}}🔴{{/case}}
+                              {{#default}}⚪{{/default}}
+                            {{/switch}}
+                          </span>
+                          {{titleCase difficulty}}
+                        </span>
+                      {{/if}}
+                    </div>
+                  </div>
+                  
+                  {{#if progress}}
+                    <div class="nav-session-progress">
+                      <div class="progress-bar">
+                        <div class="progress-fill" style="width: {{progress}}%"></div>
+                      </div>
+                      <span class="progress-text">{{progress}}%</span>
+                    </div>
+                  {{/if}}
+                </div>
+                
+                {{#if (eq ../currentSessionId id)}}
+                  <span class="nav-current-indicator" aria-hidden="true">▶</span>
+                {{/if}}
+              </a>
+
+              {{#if (and activities showActivities)}}
+                <div class="nav-session-activities">
+                  <button class="activities-toggle" 
+                          aria-expanded="false" 
+                          aria-controls="activities-{{id}}"
+                          onclick="toggleSessionActivities('{{id}}')">
+                    <span class="toggle-icon" aria-hidden="true">▼</span>
+                    <span class="toggle-text">Activities</span>
+                  </button>
+                  
+                  <div id="activities-{{id}}" class="session-activities-list" style="display: none;">
+                    {{#each activities}}
+                      <a href="{{#if ../../multiPage}}session-{{add @../index 1}}.html{{else}}#session-{{../id}}{{/if}}#activity-{{id}}" 
+                         class="nav-activity-link">
+                        <span class="activity-type-icon" aria-hidden="true">{{activityIcon type}}</span>
+                        <span class="activity-title">{{title}}</span>
+                        {{#if duration}}
+                          <span class="activity-duration">{{formatDuration duration}}</span>
+                        {{/if}}
+                      </a>
+                    {{/each}}
+                  </div>
+                </div>
+              {{/if}}
+            </div>
+          {{/each}}
+        </div>
+      </div>
+    {{/if}}
+
+    {{#if showAssessments}}
+      <div class="nav-section nav-assessments">
+        <h3 class="nav-section-title">
+          <span class="section-icon" aria-hidden="true">📊</span>
+          Assessments
+        </h3>
+        
+        <div class="nav-assessments-list">
+          {{#if course.assessments}}
+            {{#each course.assessments}}
+              <a href="#assessment-{{id}}" class="nav-assessment-link {{#if completed}}completed{{/if}}">
+                <div class="nav-assessment-content">
+                  <span class="assessment-type-icon" aria-hidden="true">
+                    {{#switch type}}
+                      {{#case "quiz"}}❓{{/case}}
+                      {{#case "exam"}}📋{{/case}}
+                      {{#case "assignment"}}📝{{/case}}
+                      {{#case "project"}}🚀{{/case}}
+                      {{#default}}✅{{/default}}
+                    {{/switch}}
+                  </span>
+                  <div class="assessment-info">
+                    <span class="assessment-title">{{title}}</span>
+                    <div class="assessment-meta">
+                      {{#if points}}
+                        <span class="assessment-points">{{points}} pts</span>
+                      {{/if}}
+                      {{#if type}}
+                        <span class="assessment-type">{{titleCase type}}</span>
+                      {{/if}}
+                    </div>
+                  </div>
+                  {{#if completed}}
+                    <span class="completion-icon" aria-hidden="true">✅</span>
+                  {{/if}}
+                </div>
+              </a>
+            {{/each}}
+          {{else}}
+            <div class="no-assessments">
+              <span class="no-assessments-icon" aria-hidden="true">📝</span>
+              <span class="no-assessments-text">No assessments available</span>
+            </div>
+          {{/if}}
+        </div>
+      </div>
+    {{/if}}
+
+    {{#if showResources}}
+      <div class="nav-section nav-resources">
+        <h3 class="nav-section-title">
+          <span class="section-icon" aria-hidden="true">📚</span>
+          Course Resources
+        </h3>
+        
+        <div class="nav-resources-list">
+          {{#if course.resources}}
+            {{#each course.resources}}
+              <a href="{{url}}" target="_blank" rel="noopener noreferrer" class="nav-resource-link">
+                <span class="resource-type-icon" aria-hidden="true">
+                  {{#switch type}}
+                    {{#case "pdf"}}📄{{/case}}
+                    {{#case "video"}}🎥{{/case}}
+                    {{#case "website"}}🌐{{/case}}
+                    {{#case "book"}}📚{{/case}}
+                    {{#default}}📎{{/default}}
+                  {{/switch}}
+                </span>
+                <div class="resource-info">
+                  <span class="resource-title">{{title}}</span>
+                  {{#if description}}
+                    <span class="resource-description">{{truncate description 60}}</span>
+                  {{/if}}
+                </div>
+                <span class="external-link-icon" aria-hidden="true">🔗</span>
+              </a>
+            {{/each}}
+          {{else}}
+            <div class="no-resources">
+              <span class="no-resources-icon" aria-hidden="true">📚</span>
+              <span class="no-resources-text">No additional resources</span>
+            </div>
+          {{/if}}
+        </div>
+      </div>
+    {{/if}}
+  </div>
+
+  <div class="nav-footer">
+    <div class="nav-progress-summary">
+      <div class="progress-label">Overall Progress</div>
+      <div class="progress-bar">
+        <div class="progress-fill" style="width: {{#if overallProgress}}{{overallProgress}}{{else}}0{{/if}}%"></div>
+      </div>
+      <div class="progress-stats">
+        <span class="progress-percentage">{{#if overallProgress}}{{overallProgress}}{{else}}0{{/if}}%</span>
+        {{#if completedSessions}}
+          <span class="completed-sessions">{{completedSessions}}/{{course.sessions.length}} sessions</span>
+        {{/if}}
+      </div>
+    </div>
+
+    {{#if showNavigationControls}}
+      <div class="nav-controls">
+        {{#if previousSession}}
+          <a href="{{#if multiPage}}session-{{previousSession.index}}.html{{else}}#session-{{previousSession.id}}{{/if}}" 
+             class="nav-control nav-previous">
+            <span class="control-icon" aria-hidden="true">←</span>
+            <span class="control-text">Previous</span>
+          </a>
+        {{/if}}
+        
+        {{#if nextSession}}
+          <a href="{{#if multiPage}}session-{{nextSession.index}}.html{{else}}#session-{{nextSession.id}}{{/if}}" 
+             class="nav-control nav-next">
+            <span class="control-text">Next</span>
+            <span class="control-icon" aria-hidden="true">→</span>
+          </a>
+        {{/if}}
+      </div>
+    {{/if}}
+  </div>
+</nav>
+
+<script>
+// Navigation menu functionality
+function toggleSessionActivities(sessionId) {
+  const activitiesList = document.getElementById(`activities-${sessionId}`);
+  const toggle = document.querySelector(`[aria-controls="activities-${sessionId}"]`);
+  const toggleIcon = toggle.querySelector('.toggle-icon');
+  
+  const isVisible = activitiesList.style.display !== 'none';
+  activitiesList.style.display = isVisible ? 'none' : 'block';
+  toggle.setAttribute('aria-expanded', !isVisible);
+  toggleIcon.textContent = isVisible ? '▼' : '▲';
+}
+
+// Keyboard navigation
+document.addEventListener('keydown', function(e) {
+  if (e.altKey) {
+    switch(e.key) {
+      case 'ArrowUp':
+        e.preventDefault();
+        navigateToPrevious();
+        break;
+      case 'ArrowDown':
+        e.preventDefault();
+        navigateToNext();
+        break;
+      case 'Home':
+        e.preventDefault();
+        navigateToOverview();
+        break;
+    }
+  }
+});
+
+function navigateToPrevious() {
+  const prevLink = document.querySelector('.nav-control.nav-previous');
+  if (prevLink) prevLink.click();
+}
+
+function navigateToNext() {
+  const nextLink = document.querySelector('.nav-control.nav-next');
+  if (nextLink) nextLink.click();
+}
+
+function navigateToOverview() {
+  const overviewLink = document.querySelector('.nav-overview-link');
+  if (overviewLink) overviewLink.click();
+}
+
+// Smooth scrolling for same-page navigation
+document.querySelectorAll('.nav-session-link[href^="#"], .nav-assessment-link[href^="#"]').forEach(link => {
+  link.addEventListener('click', function(e) {
+    if (this.getAttribute('href').startsWith('#')) {
+      e.preventDefault();
+      const target = document.querySelector(this.getAttribute('href'));
+      if (target) {
+        target.scrollIntoView({
+          behavior: 'smooth',
+          block: 'start'
+        });
+      }
+    }
+  });
+});
+
+// Update navigation state
+function updateNavigationState() {
+  // This would be called when session progress changes
+  // Implementation would depend on progress tracking system
+}
+</script>

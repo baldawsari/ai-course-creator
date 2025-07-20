@@ -1,0 +1,342 @@
+{{!-- AssessmentSection Component - Course assessment and evaluation rendering --}}
+<section class="assessment-section" data-assessment-id="{{id}}">
+  <header class="assessment-header">
+    <div class="assessment-meta">
+      <span class="assessment-type-badge assessment-type-{{type}}">
+        {{#switch type}}
+          {{#case "quiz"}}Quiz{{/case}}
+          {{#case "exam"}}Exam{{/case}}
+          {{#case "assignment"}}Assignment{{/case}}
+          {{#case "project"}}Project{{/case}}
+          {{#case "peer-review"}}Peer Review{{/case}}
+          {{#default}}Assessment{{/default}}
+        {{/switch}}
+      </span>
+      {{#if duration}}
+        <span class="assessment-duration">
+          <span class="duration-icon" aria-hidden="true">⏱️</span>
+          {{formatDuration duration}}
+        </span>
+      {{/if}}
+      {{#if points}}
+        <span class="assessment-points">
+          <span class="points-icon" aria-hidden="true">📊</span>
+          {{points}} points
+        </span>
+      {{/if}}
+      {{#if weight}}
+        <span class="assessment-weight">{{weight}}% of final grade</span>
+      {{/if}}
+    </div>
+    <h2 class="assessment-title">
+      <span class="assessment-icon" aria-hidden="true">
+        {{#switch type}}
+          {{#case "quiz"}}❓{{/case}}
+          {{#case "exam"}}📋{{/case}}
+          {{#case "assignment"}}📝{{/case}}
+          {{#case "project"}}🚀{{/case}}
+          {{#case "peer-review"}}👥{{/case}}
+          {{#default}}✅{{/default}}
+        {{/switch}}
+      </span>
+      {{title}}
+    </h2>
+  </header>
+
+  {{#if description}}
+    <div class="assessment-description">
+      {{{parseMarkdown description}}}
+    </div>
+  {{/if}}
+
+  {{#if objectives}}
+    <div class="assessment-objectives">
+      <h3 class="objectives-title">Learning Objectives</h3>
+      <ul class="objectives-list">
+        {{#each objectives}}
+          <li class="objective-item">
+            <span class="objective-marker" aria-hidden="true">🎯</span>
+            {{this}}
+          </li>
+        {{/each}}
+      </ul>
+    </div>
+  {{/if}}
+
+  {{#switch type}}
+    {{#case "quiz"}}
+      <div class="quiz-assessment">
+        {{#if instructions}}
+          <div class="quiz-instructions">
+            <h3 class="instructions-title">Instructions</h3>
+            <div class="instructions-content">
+              {{{parseMarkdown instructions}}}
+            </div>
+          </div>
+        {{/if}}
+
+        {{#if questions}}
+          <div class="quiz-questions">
+            <div class="questions-summary">
+              <span class="question-count">{{questions.length}} questions</span>
+              {{#if time_limit}}
+                <span class="time-limit">Time limit: {{formatDuration time_limit}}</span>
+              {{/if}}
+            </div>
+            
+            {{#each questions}}
+              <div class="quiz-question" data-question-id="{{@index}}">
+                <div class="question-header">
+                  <span class="question-number">Question {{add @index 1}}</span>
+                  {{#if points}}
+                    <span class="question-points">{{points}} pts</span>
+                  {{/if}}
+                  {{#if difficulty}}
+                    <span class="question-difficulty difficulty-{{difficulty}}">{{titleCase difficulty}}</span>
+                  {{/if}}
+                </div>
+                
+                <div class="question-text">
+                  {{{parseMarkdown question}}}
+                </div>
+
+                {{#if options}}
+                  <div class="question-options">
+                    {{#each options}}
+                      <label class="option-label">
+                        <input type="radio" name="question-{{@../index}}" value="{{@index}}" class="option-input">
+                        <span class="option-text">{{this}}</span>
+                      </label>
+                    {{/each}}
+                  </div>
+                {{/if}}
+
+                {{#if explanation}}
+                  <div class="question-explanation" style="display: none;">
+                    <h4 class="explanation-title">Explanation</h4>
+                    <div class="explanation-content">
+                      {{{parseMarkdown explanation}}}
+                    </div>
+                  </div>
+                {{/if}}
+              </div>
+            {{/each}}
+          </div>
+        {{/if}}
+      </div>
+    {{/case}}
+
+    {{#case "assignment"}}
+      <div class="assignment-assessment">
+        {{#if requirements}}
+          <div class="assignment-requirements">
+            <h3 class="requirements-title">Requirements</h3>
+            <div class="requirements-content">
+              {{{parseMarkdown requirements}}}
+            </div>
+          </div>
+        {{/if}}
+
+        {{#if deliverables}}
+          <div class="assignment-deliverables">
+            <h3 class="deliverables-title">Deliverables</h3>
+            <ul class="deliverables-list">
+              {{#each deliverables}}
+                <li class="deliverable-item">
+                  <span class="deliverable-marker" aria-hidden="true">📎</span>
+                  {{this}}
+                </li>
+              {{/each}}
+            </ul>
+          </div>
+        {{/if}}
+
+        {{#if grading_criteria}}
+          <div class="grading-criteria">
+            <h3 class="criteria-title">Grading Criteria</h3>
+            <div class="criteria-content">
+              {{{parseMarkdown grading_criteria}}}
+            </div>
+          </div>
+        {{/if}}
+      </div>
+    {{/case}}
+
+    {{#case "project"}}
+      <div class="project-assessment">
+        {{#if overview}}
+          <div class="project-overview">
+            <h3 class="overview-title">Project Overview</h3>
+            <div class="overview-content">
+              {{{parseMarkdown overview}}}
+            </div>
+          </div>
+        {{/if}}
+
+        {{#if phases}}
+          <div class="project-phases">
+            <h3 class="phases-title">Project Phases</h3>
+            <div class="phases-list">
+              {{#each phases}}
+                <div class="phase-item">
+                  <div class="phase-header">
+                    <h4 class="phase-title">Phase {{add @index 1}}: {{title}}</h4>
+                    {{#if duration}}
+                      <span class="phase-duration">{{formatDuration duration}}</span>
+                    {{/if}}
+                  </div>
+                  {{#if description}}
+                    <div class="phase-description">
+                      {{{parseMarkdown description}}}
+                    </div>
+                  {{/if}}
+                  {{#if deliverables}}
+                    <div class="phase-deliverables">
+                      <h5 class="phase-deliverables-title">Deliverables:</h5>
+                      <ul class="phase-deliverables-list">
+                        {{#each deliverables}}
+                          <li>{{this}}</li>
+                        {{/each}}
+                      </ul>
+                    </div>
+                  {{/if}}
+                </div>
+              {{/each}}
+            </div>
+          </div>
+        {{/if}}
+      </div>
+    {{/case}}
+
+    {{#case "peer-review"}}
+      <div class="peer-review-assessment">
+        {{#if guidelines}}
+          <div class="review-guidelines">
+            <h3 class="guidelines-title">Review Guidelines</h3>
+            <div class="guidelines-content">
+              {{{parseMarkdown guidelines}}}
+            </div>
+          </div>
+        {{/if}}
+
+        {{#if criteria}}
+          <div class="review-criteria">
+            <h3 class="criteria-title">Review Criteria</h3>
+            <div class="criteria-list">
+              {{#each criteria}}
+                <div class="criteria-item">
+                  <h4 class="criteria-name">{{name}}</h4>
+                  {{#if description}}
+                    <p class="criteria-description">{{description}}</p>
+                  {{/if}}
+                  {{#if points}}
+                    <span class="criteria-points">{{points}} points</span>
+                  {{/if}}
+                </div>
+              {{/each}}
+            </div>
+          </div>
+        {{/if}}
+      </div>
+    {{/case}}
+
+    {{#default}}
+      <div class="generic-assessment">
+        {{#if content}}
+          <div class="assessment-content">
+            {{{parseMarkdown content}}}
+          </div>
+        {{/if}}
+      </div>
+    {{/default}}
+  {{/switch}}
+
+  {{#if rubric}}
+    <div class="assessment-rubric">
+      <h3 class="rubric-title">
+        <span class="rubric-icon" aria-hidden="true">📏</span>
+        Grading Rubric
+      </h3>
+      <div class="rubric-content">
+        <table class="rubric-table">
+          <thead>
+            <tr>
+              <th>Criteria</th>
+              <th>Excellent (4)</th>
+              <th>Good (3)</th>
+              <th>Satisfactory (2)</th>
+              <th>Needs Improvement (1)</th>
+            </tr>
+          </thead>
+          <tbody>
+            {{#each rubric}}
+              <tr>
+                <td class="criteria-name">{{criteria}}</td>
+                <td class="level-excellent">{{excellent}}</td>
+                <td class="level-good">{{good}}</td>
+                <td class="level-satisfactory">{{satisfactory}}</td>
+                <td class="level-needs-improvement">{{needs_improvement}}</td>
+              </tr>
+            {{/each}}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  {{/if}}
+
+  {{#if submission_details}}
+    <div class="submission-details">
+      <h3 class="submission-title">
+        <span class="submission-icon" aria-hidden="true">📤</span>
+        Submission Details
+      </h3>
+      <div class="submission-content">
+        {{#if submission_details.due_date}}
+          <div class="due-date">
+            <strong>Due Date:</strong> {{formatDate submission_details.due_date}}
+          </div>
+        {{/if}}
+        {{#if submission_details.format}}
+          <div class="submission-format">
+            <strong>Format:</strong> {{submission_details.format}}
+          </div>
+        {{/if}}
+        {{#if submission_details.method}}
+          <div class="submission-method">
+            <strong>Submission Method:</strong> {{submission_details.method}}
+          </div>
+        {{/if}}
+        {{#if submission_details.notes}}
+          <div class="submission-notes">
+            {{{parseMarkdown submission_details.notes}}}
+          </div>
+        {{/if}}
+      </div>
+    </div>
+  {{/if}}
+
+  {{#if resources}}
+    <div class="assessment-resources">
+      <h3 class="resources-title">
+        <span class="resources-icon" aria-hidden="true">📚</span>
+        Recommended Resources
+      </h3>
+      <ul class="resources-list">
+        {{#each resources}}
+          <li class="resource-item">
+            {{#if url}}
+              <a href="{{url}}" target="_blank" rel="noopener noreferrer" class="resource-link">
+                {{title}}
+              </a>
+            {{else}}
+              <span class="resource-title">{{title}}</span>
+            {{/if}}
+            {{#if description}}
+              <p class="resource-description">{{description}}</p>
+            {{/if}}
+          </li>
+        {{/each}}
+      </ul>
+    </div>
+  {{/if}}
+</section>

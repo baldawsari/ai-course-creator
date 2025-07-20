@@ -5,27 +5,33 @@ System Architecture Documentation for AI Course Creator
 ## Multi-Tier Architecture
 
 ```
-                                                            
-   Frontend         │     Backend         │   External      
-   (React)              (Express)             Services      
-                                                            
-                                                      
-                              │                        
-                                                     
-                          Supabase                   
-                         (Database)                  
-                                                     
-                                                      
-                              │                        │
-                                                          
-                           Redis           Claude API     
-                         (Queues)          Jina AI        
-                                           Qdrant         
-                                                           
+┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
+│   Frontend      │    │    Backend      │    │   External      │
+│                 │    │                 │    │   Services      │
+│ ┌─────────────┐ │    │ ┌─────────────┐ │    │                 │
+│ │  Next.js 14 │ │    │ │ Express API │ │    │ ┌─────────────┐ │
+│ │   React 18  │◄├────┤ │  TypeScript │ │    │ │ Claude API  │ │
+│ │ TypeScript  │ │    │ │             │ │    │ │   Jina AI   │ │
+│ └─────────────┘ │    │ └─────────────┘ │    │ │   Qdrant    │ │
+│                 │    │        │        │    │ └─────────────┘ │
+│ ┌─────────────┐ │    │ ┌─────────────┐ │    │                 │
+│ │   Zustand   │ │    │ │  Supabase   │ │    │ ┌─────────────┐ │
+│ │TanStack Query│ │    │ │ PostgreSQL  │ │    │ │   Redis     │ │
+│ │ Tailwind CSS│ │    │ │     RLS     │ │    │ │  (Queues)   │ │
+│ └─────────────┘ │    │ └─────────────┘ │    │ └─────────────┘ │
+└─────────────────┘    └─────────────────┘    └─────────────────┘
+         │                       │                       │
+         └───────── HTTPS ───────┼────── REST API ──────┘
+                                 │
+                    ┌─────────────────┐
+                    │   File Storage  │
+                    │   (Supabase)    │
+                    └─────────────────┘
 ```
 
 ## Core Service Architecture
 
+**Backend Services:**
 - **Advanced RAG Pipeline:** Document ingestion → Quality assessment → Smart chunking → Embedding → Vector storage → Retrieval → Generation
 - **Hybrid Search System:** Combines semantic (vector) + keyword (BM25) search with QueryFusionRetriever and Reciprocal Rank Fusion
 - **Document Processing:** Automated quality scoring, readability analysis, language detection, and intelligent content segmentation
@@ -33,6 +39,30 @@ System Architecture Documentation for AI Course Creator
 - **Multi-tenant:** Row Level Security ensures user data isolation
 - **Async Processing:** File uploads and course generation handled via Bull queues with progress tracking
 - **Authentication:** JWT + API key dual authentication with role-based permissions
+
+## Frontend Architecture
+
+**Next.js 14 Application:**
+- **App Router:** Modern Next.js routing with route groups for organization (auth), (dashboard), (public)
+- **TypeScript:** Full type safety across components, hooks, and API interactions
+- **Server-Side Rendering:** Optimized performance with static generation and server components
+
+**Component Architecture:**
+- **UI Components:** Shadcn/ui components built on Radix UI primitives for accessibility
+- **Layout Components:** Header, Footer, Sidebar with responsive navigation
+- **Feature Components:** FileUpload, CourseEditor, DocumentViewer with specialized functionality
+- **Shared Components:** LoadingSpinner, ErrorBoundary, Toast notifications
+
+**State Management:**
+- **Zustand Stores:** Client-side state for authentication, course editing, and UI preferences
+- **TanStack Query:** Server state management with automatic caching, background updates, and optimistic updates
+- **React Hook Form:** Form state management with Zod validation schemas
+
+**Design System:**
+- **Tailwind CSS:** Utility-first styling with custom brand color palette
+- **Custom Theme:** Forge Orange (#FF6B35), Deep Steel Blue (#1E3A5F), Electric Cyan (#00D9FF)
+- **Responsive Design:** Mobile-first approach with dark/light mode support
+- **Animations:** Framer Motion for micro-interactions and page transitions
 
 ## Key Database Schema
 

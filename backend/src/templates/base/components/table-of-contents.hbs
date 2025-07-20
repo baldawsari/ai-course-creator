@@ -1,0 +1,146 @@
+<nav class="table-of-contents" role="navigation" aria-labelledby="toc-heading">
+    <h2 id="toc-heading" class="toc-title">Course Content</h2>
+    
+    {{#if course.overview}}
+    <div class="toc-overview">
+        <p class="toc-description">{{{markdown course.overview}}}</p>
+    </div>
+    {{/if}}
+    
+    <ol class="toc-list" role="list">
+        {{#eachWithIndex sessions}}
+        <li class="toc-item" role="listitem">
+            <div class="session-entry">
+                <a href="session-{{add index 1}}.html" class="session-link" aria-describedby="session-{{add index 1}}-meta">
+                    <div class="session-header">
+                        <span class="session-number" aria-label="Session {{add index 1}}">{{add index 1}}</span>
+                        <div class="session-info">
+                            <h3 class="session-title">{{title}}</h3>
+                            {{#if description}}
+                            <p class="session-summary">{{truncate (stripHtml description) 120}}</p>
+                            {{/if}}
+                        </div>
+                    </div>
+                </a>
+                
+                <div id="session-{{add index 1}}-meta" class="session-meta" aria-label="Session details">
+                    {{#if estimated_duration}}
+                    <span class="duration" aria-label="Duration">
+                        <span class="icon" aria-hidden="true">⏱️</span>
+                        {{formatDuration estimated_duration}}
+                    </span>
+                    {{/if}}
+                    
+                    {{#if activities}}
+                    <span class="activity-count" aria-label="{{activities.length}} activities">
+                        <span class="icon" aria-hidden="true">🎯</span>
+                        {{activities.length}} {{pluralize activities.length 'activity' 'activities'}}
+                    </span>
+                    {{/if}}
+                    
+                    {{#if difficulty}}
+                    <span class="difficulty" aria-label="Difficulty: {{titleCase difficulty}}">
+                        <span class="icon" aria-hidden="true">
+                            {{#eq difficulty 'beginner'}}⭐{{/eq}}
+                            {{#eq difficulty 'intermediate'}}⭐⭐{{/eq}}
+                            {{#eq difficulty 'advanced'}}⭐⭐⭐{{/eq}}
+                        </span>
+                        {{titleCase difficulty}}
+                    </span>
+                    {{/if}}
+                    
+                    {{#if prerequisites}}
+                    <span class="prerequisites" aria-label="Prerequisites required">
+                        <span class="icon" aria-hidden="true">📋</span>
+                        Prerequisites
+                    </span>
+                    {{/if}}
+                </div>
+                
+                {{#if objectives}}
+                <details class="session-objectives">
+                    <summary class="objectives-toggle">
+                        <span class="toggle-icon" aria-hidden="true">📝</span>
+                        Learning Objectives
+                    </summary>
+                    <ul class="objectives-list" role="list">
+                        {{#each objectives}}
+                        <li class="objective-item" role="listitem">{{this}}</li>
+                        {{/each}}
+                    </ul>
+                </details>
+                {{/if}}
+                
+                {{#if activities}}
+                <details class="session-activities">
+                    <summary class="activities-toggle">
+                        <span class="toggle-icon" aria-hidden="true">🎯</span>
+                        Activities ({{activities.length}})
+                    </summary>
+                    <ul class="activities-list" role="list">
+                        {{#each activities}}
+                        <li class="activity-preview" role="listitem">
+                            <span class="activity-type" aria-label="Activity type">
+                                {{#if type}}
+                                <span class="type-icon" aria-hidden="true">
+                                    {{#eq type 'exercise'}}💪{{/eq}}
+                                    {{#eq type 'quiz'}}❓{{/eq}}
+                                    {{#eq type 'discussion'}}💬{{/eq}}
+                                    {{#eq type 'reading'}}📖{{/eq}}
+                                    {{#eq type 'video'}}🎥{{/eq}}
+                                    {{#eq type 'assignment'}}📝{{/eq}}
+                                    {{#eq type 'project'}}🛠️{{/eq}}
+                                    {{#eq type 'lab'}}🧪{{/eq}}
+                                </span>
+                                {{titleCase type}}
+                                {{else}}
+                                Activity
+                                {{/if}}
+                            </span>
+                            <span class="activity-title">{{title}}</span>
+                            {{#if estimated_duration}}
+                            <span class="activity-duration" aria-label="Duration">
+                                ({{formatDuration estimated_duration}})
+                            </span>
+                            {{/if}}
+                        </li>
+                        {{/each}}
+                    </ul>
+                </details>
+                {{/if}}
+            </div>
+        </li>
+        {{/eachWithIndex}}
+    </ol>
+    
+    {{#if summary}}
+    <div class="course-summary" role="region" aria-label="Course summary">
+        <h3 class="summary-title">Course Summary</h3>
+        <div class="summary-stats">
+            {{#if summary.totalDuration}}
+            <div class="stat-item">
+                <span class="stat-icon" aria-hidden="true">⏱️</span>
+                <span class="stat-label">Total Duration:</span>
+                <span class="stat-value">{{formatDuration summary.totalDuration}}</span>
+            </div>
+            {{/if}}
+            
+            {{#if summary.totalSessions}}
+            <div class="stat-item">
+                <span class="stat-icon" aria-hidden="true">📚</span>
+                <span class="stat-label">Sessions:</span>
+                <span class="stat-value">{{summary.totalSessions}}</span>
+            </div>
+            {{/if}}
+            
+            {{#if summary.totalActivities}}
+            <div class="stat-item">
+                <span class="stat-icon" aria-hidden="true">🎯</span>
+                <span class="stat-label">Activities:</span>
+                <span class="stat-value">{{summary.totalActivities}}</span>
+            </div>
+            {{/if}}
+        </div>
+    </div>
+    {{/if}}
+</nav>
