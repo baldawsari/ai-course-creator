@@ -96,8 +96,8 @@ function ConnectionStatus({
   const StatusIcon = getStatusIcon()
 
   return (
-    <div className="flex items-center gap-2">
-      <div className="flex items-center gap-1">
+    <div className="flex items-center gap-2" data-testid={isConnected ? "connection-status-connected" : "connection-status-disconnected"}>
+      <div className="flex items-center gap-1" data-testid="connection-info">
         <StatusIcon className={cn("h-4 w-4", getStatusColor())} />
         <span className={cn("text-sm font-medium", getStatusColor())}>
           {getStatusText()}
@@ -107,9 +107,9 @@ function ConnectionStatus({
       {/* Status indicators */}
       <div className="flex items-center gap-1">
         {pendingChanges > 0 && (
-          <Badge variant="outline" className="text-xs">
+          <Badge variant="outline" className="text-xs" data-testid="pending-changes-indicator">
             <Sync className="h-3 w-3 mr-1" />
-            {pendingChanges} pending
+            <span data-testid="pending-changes-count">{pendingChanges}</span> pending
           </Badge>
         )}
         
@@ -141,6 +141,7 @@ function OfflineBanner({
       initial={{ opacity: 0, y: -20 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: -20 }}
+      data-testid="offline-indicator"
     >
       <Alert className="border-amber-200 bg-amber-50 dark:border-amber-800 dark:bg-amber-950">
         <CloudOff className="h-4 w-4" />
@@ -184,6 +185,7 @@ function SyncProgress({
       animate={{ opacity: 1, scale: 1 }}
       exit={{ opacity: 0, scale: 0.95 }}
       className="fixed bottom-4 right-4 z-50"
+      data-testid={progress === 100 ? "sync-complete-indicator" : "syncing-indicator"}
     >
       <Card className="p-4 w-80 shadow-lg">
         <div className="flex items-center gap-3">
@@ -417,9 +419,9 @@ export function CollaborationProvider({
             <div className="flex items-center gap-2">
               {/* Active users */}
               {users.length > 0 && (
-                <div className="flex items-center gap-1 text-sm text-muted-foreground">
+                <div className="flex items-center gap-1 text-sm text-muted-foreground" data-testid="user-presence">
                   <Users className="h-4 w-4" />
-                  <span>{users.length}</span>
+                  <span data-testid="online-users-count">{users.length}</span>
                 </div>
               )}
 

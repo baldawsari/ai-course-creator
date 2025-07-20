@@ -186,7 +186,7 @@ export function SessionBoard({
                   <Card className={cn(
                     "border transition-all duration-200 hover:shadow-md",
                     isSelected && "ring-2 ring-purple-500 border-purple-200"
-                  )} data-testid={`session-card-${session.id}`}>
+                  )} data-testid={`session-card-${session.id}`} data-session-id={session.id}>
                     {/* Session Header */}
                     <div className="p-3">
                       <div className="flex items-center space-x-2">
@@ -408,6 +408,7 @@ export function SessionBoard({
         variant="outline"
         onClick={onAddSession}
         className="w-full justify-start text-sm text-gray-600 hover:text-gray-900"
+        data-testid="add-session-button"
       >
         <Plus className="h-4 w-4 mr-2" />
         Add New Session

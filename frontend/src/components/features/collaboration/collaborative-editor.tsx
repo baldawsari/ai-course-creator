@@ -50,6 +50,7 @@ function LiveCursor({ cursor, className }: { cursor: CursorPosition; className?:
       animate={{ opacity: 1, scale: 1 }}
       exit={{ opacity: 0, scale: 0.8 }}
       transition={{ duration: 0.2 }}
+      data-testid={`remote-cursor-${cursor.userId}`}
     >
       {/* Cursor line */}
       <div 
@@ -87,7 +88,7 @@ function PresenceIndicator({ courseId }: { courseId: string }) {
             return (
               <Tooltip key={user.id}>
                 <TooltipTrigger asChild>
-                  <div className="relative">
+                  <div className="relative" data-testid={`user-avatar-${user.id}`}>
                     <Avatar className="h-8 w-8 border-2 border-background">
                       <AvatarImage src={user.avatar} alt={user.name} />
                       <AvatarFallback style={{ backgroundColor: user.color }}>
@@ -107,6 +108,7 @@ function PresenceIndicator({ courseId }: { courseId: string }) {
                         className="absolute -top-1 -right-1 h-3 w-3 bg-blue-500 rounded-full"
                         animate={{ scale: [1, 1.2, 1] }}
                         transition={{ duration: 1, repeat: Infinity }}
+                        data-testid={`typing-indicator-${user.id}`}
                       >
                         <Edit3 className="h-2 w-2 text-white" />
                       </motion.div>
@@ -155,7 +157,7 @@ function ConflictResolution({
   if (conflicts.length === 0) return null
 
   return (
-    <Card className="p-4 border-amber-200 bg-amber-50 dark:border-amber-800 dark:bg-amber-950">
+    <Card className="p-4 border-amber-200 bg-amber-50 dark:border-amber-800 dark:bg-amber-950" data-testid="conflict-resolution-modal">
       <div className="flex items-start gap-3">
         <AlertTriangle className="h-5 w-5 text-amber-500 mt-0.5" />
         <div className="flex-1">
@@ -179,6 +181,7 @@ function ConflictResolution({
                     size="sm" 
                     variant="outline"
                     onClick={() => onResolve(conflict.id, 'accept')}
+                    data-testid="accept-remote-changes"
                   >
                     Accept
                   </Button>
@@ -186,6 +189,7 @@ function ConflictResolution({
                     size="sm" 
                     variant="outline"
                     onClick={() => onResolve(conflict.id, 'reject')}
+                    data-testid="accept-local-changes"
                   >
                     Reject
                   </Button>
@@ -194,6 +198,7 @@ function ConflictResolution({
                       size="sm" 
                       variant="outline"
                       onClick={() => onResolve(conflict.id, 'merge')}
+                      data-testid="merge-changes"
                     >
                       Auto-merge
                     </Button>
@@ -399,6 +404,7 @@ export function CollaborativeEditor({
           onKeyUp={handleCursorPosition}
           placeholder={placeholder}
           disabled={disabled}
+          data-testid="content-editor"
           className={cn(
             "w-full min-h-[200px] p-4 border rounded-lg resize-none",
             "focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary",

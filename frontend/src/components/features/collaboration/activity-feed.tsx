@@ -375,7 +375,7 @@ export function ActivityFeed({
   const hasMore = activities.length > maxItems
 
   return (
-    <Card className={cn("flex flex-col", className)}>
+    <Card className={cn("flex flex-col", className)} data-testid="activity-feed-panel">
       {showHeader && (
         <div className="p-4 border-b">
           <div className="flex items-center justify-between">

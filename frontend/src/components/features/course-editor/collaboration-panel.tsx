@@ -237,6 +237,7 @@ export function CollaborationPanel({
         isReply && "ml-8 border-l-2 border-gray-200 pl-4",
         comment.isResolved && "opacity-60"
       )}
+      data-testid={isReply ? "comment-reply" : "comment-thread"}
     >
       <div className={cn(
         "p-3 rounded-lg border transition-all duration-200",
@@ -323,7 +324,7 @@ export function CollaborationPanel({
           )}
         </div>
 
-        <p className="text-sm text-gray-700 mb-2">
+        <p className="text-sm text-gray-700 mb-2" data-testid="comment-content">
           {comment.content}
         </p>
 
@@ -353,6 +354,7 @@ export function CollaborationPanel({
                 onChange={(e) => setNewComment(e.target.value)}
                 placeholder="Write a reply..."
                 className="flex-1 text-sm"
+                data-testid="reply-text"
                 onKeyDown={(e) => {
                   if (e.key === 'Enter' && !e.shiftKey) {
                     e.preventDefault()
@@ -360,7 +362,7 @@ export function CollaborationPanel({
                   }
                 }}
               />
-              <Button size="sm" onClick={addComment}>
+              <Button size="sm" onClick={addComment} data-testid="submit-reply">
                 <Send className="h-3 w-3" />
               </Button>
             </div>
@@ -462,13 +464,14 @@ export function CollaborationPanel({
           </div>
 
           {/* Comment Input */}
-          <div className="border-t border-gray-200 p-4">
+          <div className="border-t border-gray-200 p-4" data-testid="comment-form">
             <div className="flex space-x-2">
               <Input
                 value={newComment}
                 onChange={(e) => setNewComment(e.target.value)}
                 placeholder="Add a comment..."
                 className="flex-1"
+                data-testid="comment-text"
                 onKeyDown={(e) => {
                   if (e.key === 'Enter' && !e.shiftKey) {
                     e.preventDefault()
@@ -476,7 +479,7 @@ export function CollaborationPanel({
                   }
                 }}
               />
-              <Button size="sm" onClick={addComment} disabled={!newComment.trim()}>
+              <Button size="sm" onClick={addComment} disabled={!newComment.trim()} data-testid="submit-comment">
                 <Send className="h-4 w-4" />
               </Button>
             </div>
