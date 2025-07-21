@@ -88,6 +88,34 @@ backend/tests/
 For detailed test examples and patterns, refer to the test files directly or the testing utilities in `tests/utils/`.
 
 
+### Visual Intelligence Tests
+
+**Test File:** `tests/unit/services/visualIntelligence.test.js`
+
+**Coverage Areas:**
+- Content analysis and pattern detection
+- SVG generation for all visual types
+- Icon selection and color palette usage
+- Quality assessment algorithms
+- Error handling and graceful degradation
+- Cache functionality
+
+**Key Test Scenarios:**
+1. Pattern detection for lists, processes, data, timelines
+2. Visual generation with various options
+3. AI integration fallback mechanisms
+4. XML escaping and text wrapping
+5. Visual quality scoring
+
+**Running Visual Intelligence Tests:**
+```bash
+# Run specific test file
+npm test -- visualIntelligence.test.js
+
+# Run with coverage
+npm test -- --coverage visualIntelligence.test.js
+```
+
 ## Update Log
 
 

@@ -21,12 +21,13 @@ AI Course Creator is a production-ready application that helps IT, Data, and AI 
 - **Frontend:** Next.js 14, React 18, TypeScript, Tailwind CSS, Shadcn/ui
 - **Backend:** Node.js, Express, TypeScript
 - **Database:** Supabase (PostgreSQL with Row Level Security)
-- **AI Services:** Anthropic Claude API, Jina AI (embeddings/reranking)
+- **AI Services:** Anthropic Claude API, Jina AI (embeddings/reranking), Visual Intelligence (AI-powered visual generation)
 - **Vector Database:** Qdrant
 - **RAG Framework:** LlamaIndex
 - **Queue System:** Bull with Redis
 - **Authentication:** JWT with Supabase Auth
 - **Testing:** Jest, React Testing Library, Playwright
+- **Visual Generation:** SVG-based infographics, flowcharts, data visualizations
 
 ## Development Commands
 
@@ -146,7 +147,8 @@ All async routes wrapped with `asyncHandler` for consistent error propagation. C
 - Document processing pipeline with quality assessment
 - RAG pipeline with Qdrant vector search and Jina AI
 - Claude AI integration for course generation
-- Multi-format export system (HTML, PDF, PowerPoint)
+- **NEW:** Visual Intelligence engine for AI-powered visual generation
+- Multi-format export system (HTML, PDF, PowerPoint) with visual enhancement
 - Next.js 14 frontend with complete UI/UX
 - Testing infrastructure (Frontend: 13% coverage, 213/285 tests passing)
 

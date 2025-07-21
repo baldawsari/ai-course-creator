@@ -1,0 +1,85 @@
+<svg viewBox="0 0 400 300" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <linearGradient id="bgGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" style="stop-color:#6366f1;stop-opacity:0.1" />
+          <stop offset="100%" style="stop-color:#4f46e5;stop-opacity:0.05" />
+        </linearGradient>
+        <filter id="shadow">
+          <feDropShadow dx="0" dy="2" stdDeviation="3" flood-opacity="0.1"/>
+        </filter>
+      </defs>
+    <rect width="400" height="300" fill="#f8fafc" /><rect width="400" height="300" fill="url(#bgGradient)" />
+        <text x="200" y="60" 
+              text-anchor="middle" 
+              font-size="28" 
+              font-weight="bold" 
+              fill="#1f2937">
+          Learning Path
+        </text>
+      <g transform="translate(40, 100)">
+        <rect x="0" y="0" 
+              width="140" 
+              height="65" 
+              rx="8" 
+              fill="white" 
+              filter="url(#shadow)" />
+      
+        <circle cx="30" 
+                cy="32.5" 
+                r="20" 
+                fill="#6366f1" />
+        <path d="M5 13.18v4L12 21l7-3.82v-4L12 17l-7-3.82zM12 3L1 9l11 6 9-4.91V17h2V9L12 3z" 
+              fill="white" 
+              transform="translate(20, 22.5) scale(1.6666666666666667)" />
+      
+        <text x="65" 
+              y="37.5" 
+              font-size="16" 
+              fill="#1f2937">
+          Learn JavaScript
+        </text>
+      </g><g transform="translate(40, 180)">
+        <rect x="0" y="0" 
+              width="140" 
+              height="65" 
+              rx="8" 
+              fill="white" 
+              filter="url(#shadow)" />
+      
+        <circle cx="30" 
+                cy="32.5" 
+                r="20" 
+                fill="#6366f1" />
+        <path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z" 
+              fill="white" 
+              transform="translate(20, 22.5) scale(1.6666666666666667)" />
+      
+        <text x="65" 
+              y="37.5" 
+              font-size="16" 
+              fill="#1f2937">
+          Master React
+        </text>
+      </g><g transform="translate(200, 100)">
+        <rect x="0" y="0" 
+              width="140" 
+              height="65" 
+              rx="8" 
+              fill="white" 
+              filter="url(#shadow)" />
+      
+        <circle cx="30" 
+                cy="32.5" 
+                r="20" 
+                fill="#6366f1" />
+        <path d="M12 2L2 12h3v8h14v-8h3L12 2zm0 3.5L18.5 12H16v6H8v-6H5.5L12 5.5z" 
+              fill="white" 
+              transform="translate(20, 22.5) scale(1.6666666666666667)" />
+      
+        <text x="65" 
+              y="37.5" 
+              font-size="16" 
+              fill="#1f2937">
+          Build APIs
+        </text>
+      </g></svg>
