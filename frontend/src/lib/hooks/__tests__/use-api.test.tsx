@@ -2,7 +2,7 @@ import React from 'react'
 import { describe, it, expect, jest, beforeEach, afterEach, beforeAll, afterAll } from '@jest/globals'
 import { renderHook, waitFor } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { ReactNode } from 'react'
+import type { ReactNode } from 'react'
 import { http, HttpResponse } from 'msw'
 import { server, mockAPI } from '@/__tests__/utils/api-mocks'
 import { MockDataGenerator } from '@/__tests__/utils/mock-data'
@@ -18,7 +18,66 @@ import {
   useGenerateCourse,
   useJobStatus,
   useExportCourse,
+  useForgotPassword,
+  useUser,
+  useDocuments,
+  useDocument,
+  useUploadMultipleDocuments,
+  useDeleteDocument,
+  useInfiniteCourses,
+  useCourse,
+  useUploadCourseResources,
+  useAddUrlToCourse,
+  useGenerateCourseContent,
+  useCancelJob,
+  useJobs,
+  useExportBundle,
+  useDownloadExport,
+  useHealthCheck,
+  useJobSubscription,
+  useBulkDeleteCourses,
+  usePrefetchCourse,
+  useInvalidateCache,
 } from '../use-api'
+
+// Mock stores
+jest.mock('@/lib/store/auth-store', () => ({
+  useAuthStore: jest.fn(() => ({
+    user: null,
+    isAuthenticated: false,
+    login: jest.fn(),
+    logout: jest.fn(),
+  })),
+}))
+
+jest.mock('@/lib/store/course-store', () => ({
+  useCourseStore: jest.fn(() => ({
+    courses: [],
+    currentCourse: null,
+    setCurrentCourse: jest.fn(),
+    addCourse: jest.fn(),
+    updateCourse: jest.fn(),
+    deleteCourse: jest.fn(),
+    bulkDeleteCourses: jest.fn(),
+  })),
+}))
+
+jest.mock('@/lib/store/generation-store', () => ({
+  useGenerationStore: jest.fn(() => ({
+    generations: {},
+    startGeneration: jest.fn(),
+    updateGeneration: jest.fn(),
+    cancelGeneration: jest.fn(),
+    subscribeToJob: jest.fn(() => () => {}),
+  })),
+}))
+
+jest.mock('@/lib/store/ui-store', () => ({
+  useUIStore: jest.fn(() => ({
+    notifications: [],
+    addNotification: jest.fn(),
+  })),
+}))
 
 // Base API URL
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'
@@ -750,6 +809,691 @@ describe('API Hooks', () => {
       await waitFor(() => {
         expect(coursesResult.current.data).not.toBe(initialData)
       })
+    })
+  })
+
+  describe('useForgotPassword', () => {
+    it('should send forgot password request', async () => {
+      const wrapper = createWrapper()
+      const { result } = renderHook(() => useForgotPassword(), { wrapper })
+
+      result.current.mutate('test@example.com')
+
+      await waitFor(() => {
+        expect(result.current.isSuccess).toBe(true)
+      })
+    })
+
+    it('should handle errors', async () => {
+      const wrapper = createWrapper()
+      const { result } = renderHook(() => useForgotPassword(), { wrapper })
+
+      server.use(
+        http.post(`${API_BASE}/auth/forgot-password`, async () => {
+          return HttpResponse.json({ error: 'User not found' }, { status: 404 })
+        })
+      )
+
+      result.current.mutate('notfound@example.com')
+
+      await waitFor(() => {
+        expect(result.current.isError).toBe(true)
+      })
+    })
+  })
+
+  describe('useUser', () => {
+    it('should fetch current user when authenticated', async () => {
+      const wrapper = createWrapper()
+      const mockUser = MockDataGenerator.user()
+      
+      // Mock auth store
+      const mockAuthStore = require('@/lib/store/auth-store')
+      mockAuthStore.useAuthStore = jest.fn().mockReturnValue({
+        user: mockUser,
+        isAuthenticated: true,
+      })
+
+      const { result } = renderHook(() => useUser(), { wrapper })
+
+      await waitFor(() => {
+        expect(result.current.isSuccess).toBe(true)
+      })
+
+      expect(result.current.data).toBeDefined()
+    })
+
+    it('should not fetch when not authenticated', () => {
+      const wrapper = createWrapper()
+      
+      // Mock auth store
+      const mockAuthStore = require('@/lib/store/auth-store')
+      mockAuthStore.useAuthStore = jest.fn().mockReturnValue({
+        user: null,
+        isAuthenticated: false,
+      })
+
+      const { result } = renderHook(() => useUser(), { wrapper })
+
+      expect(result.current.isIdle).toBe(true)
+      expect(result.current.data).toBeUndefined()
+    })
+  })
+
+  describe('useDocuments', () => {
+    it('should fetch documents list', async () => {
+      const wrapper = createWrapper()
+      const { result } = renderHook(() => useDocuments(), { wrapper })
+
+      await waitFor(() => {
+        expect(result.current.isSuccess).toBe(true)
+      })
+
+      expect(result.current.data).toMatchObject({
+        documents: expect.any(Array),
+        total: expect.any(Number),
+      })
+    })
+
+    it('should fetch documents with parameters', async () => {
+      const wrapper = createWrapper()
+      const params = { page: 2, limit: 10, search: 'test' }
+      const { result } = renderHook(() => useDocuments(params), { wrapper })
+
+      await waitFor(() => {
+        expect(result.current.isSuccess).toBe(true)
+      })
+    })
+  })
+
+  describe('useDocument', () => {
+    it('should fetch single document', async () => {
+      const wrapper = createWrapper()
+      const { result } = renderHook(() => useDocument('doc-123'), { wrapper })
+
+      await waitFor(() => {
+        expect(result.current.isSuccess).toBe(true)
+      })
+
+      expect(result.current.data).toMatchObject({
+        id: 'doc-123',
+      })
+    })
+
+    it('should not fetch when id is empty', () => {
+      const wrapper = createWrapper()
+      const { result } = renderHook(() => useDocument(''), { wrapper })
+
+      expect(result.current.isIdle).toBe(true)
+    })
+  })
+
+  describe('useUploadMultipleDocuments', () => {
+    it('should upload multiple files', async () => {
+      const wrapper = createWrapper()
+      const { result } = renderHook(() => useUploadMultipleDocuments(), { wrapper })
+
+      const files = [
+        new File(['content1'], 'test1.pdf', { type: 'application/pdf' }),
+        new File(['content2'], 'test2.pdf', { type: 'application/pdf' }),
+      ]
+
+      result.current.mutate({ files })
+
+      await waitFor(() => {
+        expect(result.current.isSuccess).toBe(true)
+      })
+
+      expect(result.current.data).toHaveLength(2)
+    })
+
+    it('should track progress for multiple files', async () => {
+      const wrapper = createWrapper()
+      const { result } = renderHook(() => useUploadMultipleDocuments(), { wrapper })
+      const onProgress = jest.fn()
+
+      const files = [
+        new File(['content1'], 'test1.pdf', { type: 'application/pdf' }),
+        new File(['content2'], 'test2.pdf', { type: 'application/pdf' }),
+      ]
+
+      result.current.mutate({ files, onProgress })
+
+      await waitFor(() => {
+        expect(result.current.isSuccess).toBe(true)
+      })
+
+      expect(onProgress).toHaveBeenCalled()
+    })
+  })
+
+  describe('useDeleteDocument', () => {
+    it('should delete document successfully', async () => {
+      const wrapper = createWrapper()
+      const { result } = renderHook(() => useDeleteDocument(), { wrapper })
+
+      result.current.mutate('doc-123')
+
+      await waitFor(() => {
+        expect(result.current.isSuccess).toBe(true)
+      })
+    })
+
+    it('should handle deletion errors', async () => {
+      const wrapper = createWrapper()
+      const { result } = renderHook(() => useDeleteDocument(), { wrapper })
+
+      server.use(
+        http.delete(`${API_BASE}/documents/doc-404`, async () => {
+          return HttpResponse.json({ error: 'Document not found' }, { status: 404 })
+        })
+      )
+
+      result.current.mutate('doc-404')
+
+      await waitFor(() => {
+        expect(result.current.isError).toBe(true)
+      })
+    })
+  })
+
+  describe('useInfiniteCourses', () => {
+    it('should fetch courses with infinite scrolling', async () => {
+      const wrapper = createWrapper()
+      const { result } = renderHook(() => useInfiniteCourses({ limit: 5 }), { wrapper })
+
+      await waitFor(() => {
+        expect(result.current.isSuccess).toBe(true)
+      })
+
+      expect(result.current.data?.pages).toHaveLength(1)
+      expect(result.current.hasNextPage).toBeDefined()
+    })
+
+    it('should fetch next page', async () => {
+      const wrapper = createWrapper()
+      const { result } = renderHook(() => useInfiniteCourses({ limit: 5 }), { wrapper })
+
+      await waitFor(() => {
+        expect(result.current.isSuccess).toBe(true)
+      })
+
+      // Mock next page data
+      server.use(
+        http.get(`${API_BASE}/courses`, async ({ request }) => {
+          const url = new URL(request.url)
+          const page = Number(url.searchParams.get('page')) || 1
+          if (page === 2) {
+            return HttpResponse.json({
+              courses: MockDataGenerator.courses(5),
+              total: 10,
+              page: 2,
+              limit: 5,
+            })
+          }
+          return HttpResponse.json({
+            courses: MockDataGenerator.courses(5),
+            total: 10,
+            page: 1,
+            limit: 5,
+          })
+        })
+      )
+
+      await result.current.fetchNextPage()
+
+      await waitFor(() => {
+        expect(result.current.data?.pages).toHaveLength(2)
+      })
+    })
+  })
+
+  describe('useCourse', () => {
+    it('should fetch course and update store', async () => {
+      const wrapper = createWrapper()
+      const mockSetCurrentCourse = jest.fn()
+      
+      // Mock course store
+      const mockCourseStore = require('@/lib/store/course-store')
+      mockCourseStore.useCourseStore = jest.fn().mockReturnValue({
+        setCurrentCourse: mockSetCurrentCourse,
+      })
+
+      const { result } = renderHook(() => useCourse('course-123'), { wrapper })
+
+      await waitFor(() => {
+        expect(result.current.isSuccess).toBe(true)
+      })
+
+      expect(mockSetCurrentCourse).toHaveBeenCalledWith(
+        expect.objectContaining({ id: 'course-123' })
+      )
+    })
+  })
+
+  describe('useUploadCourseResources', () => {
+    it('should upload resources to course', async () => {
+      const wrapper = createWrapper()
+      const { result } = renderHook(() => useUploadCourseResources(), { wrapper })
+
+      const files = [
+        new File(['resource1'], 'resource1.pdf', { type: 'application/pdf' }),
+        new File(['resource2'], 'resource2.pdf', { type: 'application/pdf' }),
+      ]
+
+      result.current.mutate({
+        courseId: 'course-123',
+        files,
+      })
+
+      await waitFor(() => {
+        expect(result.current.isSuccess).toBe(true)
+      })
+
+      expect(result.current.data).toMatchObject({
+        documents: expect.arrayContaining([
+          expect.objectContaining({ filename: expect.any(String) })
+        ])
+      })
+    })
+  })
+
+  describe('useAddUrlToCourse', () => {
+    it('should add URL to course', async () => {
+      const wrapper = createWrapper()
+      const { result } = renderHook(() => useAddUrlToCourse(), { wrapper })
+
+      result.current.mutate({
+        courseId: 'course-123',
+        url: 'https://example.com/resource',
+      })
+
+      await waitFor(() => {
+        expect(result.current.isSuccess).toBe(true)
+      })
+
+      expect(result.current.data).toMatchObject({
+        document: expect.objectContaining({
+          url: 'https://example.com/resource',
+        })
+      })
+    })
+  })
+
+  describe('useGenerateCourseContent', () => {
+    it('should generate course content', async () => {
+      const wrapper = createWrapper()
+      const mockStartGeneration = jest.fn()
+      
+      // Mock generation store
+      const mockGenerationStore = require('@/lib/store/generation-store')
+      mockGenerationStore.useGenerationStore = jest.fn().mockReturnValue({
+        startGeneration: mockStartGeneration,
+      })
+
+      const { result } = renderHook(() => useGenerateCourseContent(), { wrapper })
+
+      const config = { model: 'claude-3', creativity: 70 }
+      result.current.mutate({
+        courseId: 'course-123',
+        config,
+      })
+
+      await waitFor(() => {
+        expect(result.current.isSuccess).toBe(true)
+      })
+
+      expect(mockStartGeneration).toHaveBeenCalledWith(
+        expect.any(String),
+        'course-123'
+      )
+    })
+  })
+
+  describe('useCancelJob', () => {
+    it('should cancel job successfully', async () => {
+      const wrapper = createWrapper()
+      const mockCancelGeneration = jest.fn()
+      
+      // Mock generation store
+      const mockGenerationStore = require('@/lib/store/generation-store')
+      mockGenerationStore.useGenerationStore = jest.fn().mockReturnValue({
+        cancelGeneration: mockCancelGeneration,
+      })
+
+      const { result } = renderHook(() => useCancelJob(), { wrapper })
+
+      result.current.mutate('job-123')
+
+      await waitFor(() => {
+        expect(result.current.isSuccess).toBe(true)
+      })
+
+      expect(mockCancelGeneration).toHaveBeenCalledWith('job-123')
+    })
+  })
+
+  describe('useJobs', () => {
+    it('should fetch jobs list', async () => {
+      const wrapper = createWrapper()
+      const { result } = renderHook(() => useJobs(), { wrapper })
+
+      await waitFor(() => {
+        expect(result.current.isSuccess).toBe(true)
+      })
+
+      expect(result.current.data).toMatchObject({
+        jobs: expect.any(Array),
+        total: expect.any(Number),
+      })
+    })
+
+    it('should fetch jobs with filters', async () => {
+      const wrapper = createWrapper()
+      const params = { status: 'running', type: 'generation' }
+      const { result } = renderHook(() => useJobs(params), { wrapper })
+
+      await waitFor(() => {
+        expect(result.current.isSuccess).toBe(true)
+      })
+    })
+  })
+
+  describe('useExportBundle', () => {
+    it('should export course bundle', async () => {
+      const wrapper = createWrapper()
+      const { result } = renderHook(() => useExportBundle(), { wrapper })
+
+      result.current.mutate({
+        courseId: 'course-123',
+        options: { formats: ['html', 'pdf'] },
+      })
+
+      await waitFor(() => {
+        expect(result.current.isSuccess).toBe(true)
+      })
+
+      expect(result.current.data).toMatchObject({
+        jobId: expect.any(String),
+      })
+    })
+  })
+
+  describe('useDownloadExport', () => {
+    it('should download export with progress', async () => {
+      const wrapper = createWrapper()
+      const { result } = renderHook(() => useDownloadExport(), { wrapper })
+      const onProgress = jest.fn()
+
+      result.current.mutate({
+        jobId: 'export-123',
+        filename: 'course-export.zip',
+        onProgress,
+      })
+
+      await waitFor(() => {
+        expect(result.current.isSuccess).toBe(true)
+      })
+    })
+
+    it('should download without filename', async () => {
+      const wrapper = createWrapper()
+      const { result } = renderHook(() => useDownloadExport(), { wrapper })
+
+      result.current.mutate({
+        jobId: 'export-123',
+      })
+
+      await waitFor(() => {
+        expect(result.current.isSuccess).toBe(true)
+      })
+    })
+  })
+
+  describe('useHealthCheck', () => {
+    it('should check API health', async () => {
+      const wrapper = createWrapper()
+      
+      server.use(
+        http.get(`${API_BASE}/health`, async () => {
+          return HttpResponse.json({
+            status: 'ok',
+            timestamp: new Date().toISOString(),
+            version: '1.0.0',
+          })
+        })
+      )
+
+      const { result } = renderHook(() => useHealthCheck(), { wrapper })
+
+      await waitFor(() => {
+        expect(result.current.isSuccess).toBe(true)
+      })
+
+      expect(result.current.data).toMatchObject({
+        status: 'ok',
+        version: '1.0.0',
+      })
+    })
+
+    it('should handle health check failures', async () => {
+      const wrapper = createWrapper()
+      
+      server.use(
+        http.get(`${API_BASE}/health`, async () => {
+          return HttpResponse.json({ error: 'Service unavailable' }, { status: 503 })
+        })
+      )
+
+      const { result } = renderHook(() => useHealthCheck(), { wrapper })
+
+      await waitFor(() => {
+        expect(result.current.isError).toBe(true)
+      })
+    })
+  })
+
+  describe('useJobSubscription', () => {
+    it('should subscribe to job updates', () => {
+      const wrapper = createWrapper()
+      const mockSubscribe = jest.fn().mockReturnValue(() => {})
+      const onUpdate = jest.fn()
+      
+      // Mock generation store
+      const mockGenerationStore = require('@/lib/store/generation-store')
+      mockGenerationStore.useGenerationStore = jest.fn().mockReturnValue({
+        subscribeToJob: mockSubscribe,
+      })
+
+      const { unmount } = renderHook(
+        () => useJobSubscription('job-123', onUpdate),
+        { wrapper }
+      )
+
+      expect(mockSubscribe).toHaveBeenCalledWith('job-123', onUpdate)
+
+      unmount()
+    })
+
+    it('should not subscribe when disabled', () => {
+      const wrapper = createWrapper()
+      const mockSubscribe = jest.fn()
+      const onUpdate = jest.fn()
+      
+      // Mock generation store
+      const mockGenerationStore = require('@/lib/store/generation-store')
+      mockGenerationStore.useGenerationStore = jest.fn().mockReturnValue({
+        subscribeToJob: mockSubscribe,
+      })
+
+      renderHook(
+        () => useJobSubscription('job-123', onUpdate, { enabled: false }),
+        { wrapper }
+      )
+
+      expect(mockSubscribe).not.toHaveBeenCalled()
+    })
+
+    it('should not subscribe without jobId', () => {
+      const wrapper = createWrapper()
+      const mockSubscribe = jest.fn()
+      const onUpdate = jest.fn()
+      
+      // Mock generation store
+      const mockGenerationStore = require('@/lib/store/generation-store')
+      mockGenerationStore.useGenerationStore = jest.fn().mockReturnValue({
+        subscribeToJob: mockSubscribe,
+      })
+
+      renderHook(
+        () => useJobSubscription('', onUpdate),
+        { wrapper }
+      )
+
+      expect(mockSubscribe).not.toHaveBeenCalled()
+    })
+  })
+
+  describe('useBulkDeleteCourses', () => {
+    it('should delete multiple courses', async () => {
+      const wrapper = createWrapper()
+      const mockBulkDelete = jest.fn()
+      
+      // Mock course store
+      const mockCourseStore = require('@/lib/store/course-store')
+      mockCourseStore.useCourseStore = jest.fn().mockReturnValue({
+        bulkDeleteCourses: mockBulkDelete,
+      })
+
+      const { result } = renderHook(() => useBulkDeleteCourses(), { wrapper })
+
+      const courseIds = ['course-1', 'course-2', 'course-3']
+      result.current.mutate(courseIds)
+
+      await waitFor(() => {
+        expect(result.current.isSuccess).toBe(true)
+      })
+
+      expect(mockBulkDelete).toHaveBeenCalledWith(courseIds)
+    })
+
+    it('should handle partial failures', async () => {
+      const wrapper = createWrapper()
+      const mockBulkDelete = jest.fn()
+      
+      // Mock course store
+      const mockCourseStore = require('@/lib/store/course-store')
+      mockCourseStore.useCourseStore = jest.fn().mockReturnValue({
+        bulkDeleteCourses: mockBulkDelete,
+      })
+
+      // Mock one failure
+      server.use(
+        http.delete(`${API_BASE}/courses/course-2`, async () => {
+          return HttpResponse.json({ error: 'Cannot delete' }, { status: 400 })
+        })
+      )
+
+      const { result } = renderHook(() => useBulkDeleteCourses(), { wrapper })
+
+      const courseIds = ['course-1', 'course-2', 'course-3']
+      result.current.mutate(courseIds)
+
+      await waitFor(() => {
+        expect(result.current.isSuccess).toBe(true)
+      })
+
+      // Should still call bulkDelete with all IDs
+      expect(mockBulkDelete).toHaveBeenCalledWith(courseIds)
+    })
+  })
+
+  describe('usePrefetchCourse', () => {
+    it('should return prefetch function', () => {
+      const wrapper = createWrapper()
+      const { result } = renderHook(() => usePrefetchCourse('course-123'), { wrapper })
+
+      expect(typeof result.current).toBe('function')
+    })
+
+    it('should prefetch course data', async () => {
+      const wrapper = createWrapper()
+      const queryClient = new QueryClient({
+        defaultOptions: {
+          queries: { retry: false },
+        },
+      })
+      
+      const prefetchSpy = jest.spyOn(queryClient, 'prefetchQuery')
+      
+      const { result } = renderHook(
+        () => usePrefetchCourse('course-123'),
+        { 
+          wrapper: ({ children }: { children: ReactNode }) => (
+            <QueryClientProvider client={queryClient}>
+              {children}
+            </QueryClientProvider>
+          )
+        }
+      )
+
+      result.current()
+
+      expect(prefetchSpy).toHaveBeenCalledWith({
+        queryKey: ['courses', 'detail', 'course-123'],
+        queryFn: expect.any(Function),
+        staleTime: 1000 * 60 * 5,
+      })
+    })
+  })
+
+  describe('useInvalidateCache', () => {
+    it('should return invalidate function', () => {
+      const wrapper = createWrapper()
+      const { result } = renderHook(() => useInvalidateCache(), { wrapper })
+
+      expect(typeof result.current).toBe('function')
+    })
+
+    it('should invalidate specific cache type', () => {
+      const wrapper = createWrapper()
+      const { result } = renderHook(() => useInvalidateCache(), { wrapper })
+
+      // Mock invalidateQueries functions
+      const mockInvalidateQueries = require('@/lib/query-client')
+      jest.spyOn(mockInvalidateQueries.invalidateQueries, 'courses')
+      jest.spyOn(mockInvalidateQueries.invalidateQueries, 'documents')
+      jest.spyOn(mockInvalidateQueries.invalidateQueries, 'jobs')
+
+      result.current('courses')
+      expect(mockInvalidateQueries.invalidateQueries.courses).toHaveBeenCalled()
+
+      result.current('documents')
+      expect(mockInvalidateQueries.invalidateQueries.documents).toHaveBeenCalled()
+
+      result.current('jobs')
+      expect(mockInvalidateQueries.invalidateQueries.jobs).toHaveBeenCalled()
+    })
+
+    it('should invalidate all cache when no type specified', () => {
+      const wrapper = createWrapper()
+      const queryClient = new QueryClient()
+      const invalidateSpy = jest.spyOn(queryClient, 'invalidateQueries')
+      
+      const { result } = renderHook(
+        () => useInvalidateCache(),
+        { 
+          wrapper: ({ children }: { children: ReactNode }) => (
+            <QueryClientProvider client={queryClient}>
+              {children}
+            </QueryClientProvider>
+          )
+        }
+      )
+
+      result.current()
+
+      expect(invalidateSpy).toHaveBeenCalledWith()
     })
   })
 })
