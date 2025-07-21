@@ -47,6 +47,50 @@ Service architecture and components for the AI Course Creator backend.
 - Multiple model support (Haiku, Sonnet, Opus)
 - Context-aware content creation
 
+### Visual Intelligence Service
+**Purpose:** AI-powered visual content generation from text
+
+**Core Capabilities:**
+- **Content Analysis:** Pattern detection for lists, processes, data, timelines
+- **Visual Generation:** SVG-based infographics, flowcharts, charts, diagrams
+- **AI Enhancement:** Claude API integration for intelligent visual decisions
+- **Quality Assessment:** Automatic scoring of generated visuals
+
+**Visual Types:**
+1. **Infographics:** Lists, objectives, key points
+2. **Flowcharts:** Process steps, workflows
+3. **Data Visualizations:** Bar charts, pie charts for metrics
+4. **Timelines:** Chronological events, milestones
+5. **Comparison Charts:** Side-by-side comparisons
+6. **Hierarchy Diagrams:** Organizational structures
+
+**Features:**
+- 30+ semantic icon library
+- 5 color palettes (tech, business, creative, academic, default)
+- Print-ready SVG output
+- Responsive design with viewBox
+- Professional styling (gradients, shadows, animations)
+
+**Integration Points:**
+- DesignEngine: Handlebars helpers ({{aiVisual}}, {{smartTransform}})
+- HTMLExporter: Automatic visual enhancement during export
+- Content Enhancement: Analyzes and enriches course materials
+
+### Design Engine Service
+**Purpose:** Advanced template and styling system with visual intelligence integration
+
+**Enhanced Features:**
+- Template compilation and caching
+- Dynamic CSS generation
+- Visual Intelligence integration
+- Component-based architecture
+- Quality-based content prioritization
+
+**New Capabilities:**
+- `enhanceContentWithVisuals()`: Automatically adds visuals to content
+- `generateVisualReport()`: Creates comprehensive visual reports
+- AI-powered Handlebars helpers for template enhancement
+
 ### Export Services
 
 #### HTML Export Service

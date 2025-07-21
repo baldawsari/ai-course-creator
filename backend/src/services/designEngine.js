@@ -23,7 +23,7 @@ async function initMarked() {
 }
 
 // Import dependencies with fallbacks
-let logger, supabaseAdmin, ValidationError, ProcessingError, withRetry;
+let logger, supabaseAdmin, ValidationError, ProcessingError, withRetry, VisualIntelligence;
 
 try {
   logger = require('../utils/logger');
@@ -71,6 +71,14 @@ try {
   };
 }
 
+// Import VisualIntelligence for AI-powered visual generation
+try {
+  VisualIntelligence = require('./visualIntelligence');
+} catch (error) {
+  logger.warn('VisualIntelligence service not available:', error);
+  VisualIntelligence = null;
+}
+
 /**
  * Design Engine Service
  * 
@@ -86,6 +94,9 @@ class DesignEngine {
     this.compiledComponents = new Map();
     this.styleCache = new Map();
     this.markedInitialized = false;
+    
+    // Initialize VisualIntelligence if available
+    this.visualIntelligence = VisualIntelligence ? new VisualIntelligence() : null;
     
     // Default theme configuration
     this.defaultTheme = {
@@ -292,6 +303,53 @@ class DesignEngine {
       }
       
       return new handlebars.SafeString(html);
+    });
+    
+    // AI Visual helper - generates intelligent visuals from content
+    handlebars.registerHelper('aiVisual', async (content, options) => {
+      if (!this.visualIntelligence) {
+        return new handlebars.SafeString('<!-- Visual Intelligence not available -->');
+      }
+      
+      try {
+        const visualType = options.hash.type || 'auto';
+        const result = await this.visualIntelligence.generateVisual(
+          content,
+          visualType,
+          options.hash
+        );
+        return new handlebars.SafeString(result.svg);
+      } catch (error) {
+        logger.error('AI visual generation failed:', error);
+        return new handlebars.SafeString('<!-- Visual generation failed -->');
+      }
+    });
+    
+    // Smart content transformation helper
+    handlebars.registerHelper('smartTransform', async (content, options) => {
+      if (!this.visualIntelligence) {
+        return new handlebars.SafeString(content);
+      }
+      
+      try {
+        const analysis = await this.visualIntelligence.analyzeContent(content);
+        
+        // If high confidence for visual representation, generate it
+        if (analysis.confidence > 0.7 && analysis.primaryVisual) {
+          const result = await this.visualIntelligence.generateVisual(
+            content,
+            analysis.primaryVisual.type,
+            { recommendations: analysis }
+          );
+          return new handlebars.SafeString(result.svg);
+        }
+        
+        // Otherwise return original content
+        return new handlebars.SafeString(content);
+      } catch (error) {
+        logger.error('Smart transform failed:', error);
+        return new handlebars.SafeString(content);
+      }
     });
     
     // Layout helper
@@ -1565,7 +1623,7 @@ a:hover {
   /**
    * Generate interactive diagram HTML
    */
-  generateInteractiveDiagram(id, data, options) {
+  async generateInteractiveDiagram(id, data, options) {
     const type = data.type || 'flowchart';
     
     let html = `<div id="${id}" class="interactive-diagram" data-type="${type}">`;
@@ -1576,12 +1634,35 @@ a:hover {
     
     html += `<div class="diagram-container">`;
     
-    if (type === 'flowchart') {
-      html += this.generateFlowchartHTML(data);
-    } else if (type === 'mindmap') {
-      html += this.generateMindmapHTML(data);
-    } else if (type === 'sequence') {
-      html += this.generateSequenceHTML(data);
+    // Use VisualIntelligence for AI-powered diagrams
+    if (this.visualIntelligence) {
+      try {
+        const result = await this.visualIntelligence.generateVisual(
+          data,
+          type,
+          { ...options, interactive: true }
+        );
+        html += result.svg;
+      } catch (error) {
+        logger.warn('AI diagram generation failed, using fallback:', error);
+        // Fallback to simple diagrams
+        if (type === 'flowchart') {
+          html += await this.generateFlowchartHTML(data);
+        } else if (type === 'mindmap') {
+          html += this.generateMindmapHTML(data);
+        } else if (type === 'sequence') {
+          html += this.generateSequenceHTML(data);
+        }
+      }
+    } else {
+      // No VisualIntelligence, use simple fallbacks
+      if (type === 'flowchart') {
+        html += await this.generateFlowchartHTML(data);
+      } else if (type === 'mindmap') {
+        html += this.generateMindmapHTML(data);
+      } else if (type === 'sequence') {
+        html += this.generateSequenceHTML(data);
+      }
     }
     
     html += `</div>`;
@@ -1605,7 +1686,10 @@ a:hover {
    * Generate flowchart HTML
    */
   generateFlowchartHTML(data) {
-    // Simple SVG-based flowchart
+    // Note: This is a simple placeholder. Visual Intelligence integration
+    // happens at a higher level in generateInteractiveDiagram
+    
+    // Fallback to simple SVG
     return `
       <svg viewBox="0 0 800 600" class="flowchart-svg">
         <!-- Add flowchart elements here -->
@@ -2190,6 +2274,364 @@ a:hover {
     }
     
     return Math.round(priority);
+  }
+
+  /**
+   * Process content with AI visual enhancement
+   * Analyzes content and automatically adds visual representations
+   */
+  async enhanceContentWithVisuals(content, options = {}) {
+    if (!this.visualIntelligence) {
+      logger.warn('Visual Intelligence not available, returning original content');
+      return content;
+    }
+
+    try {
+      logger.info('Enhancing content with AI-powered visuals');
+      
+      // Process different content types
+      if (typeof content === 'string') {
+        return await this.enhanceTextContent(content, options);
+      } else if (typeof content === 'object') {
+        return await this.enhanceStructuredContent(content, options);
+      }
+      
+      return content;
+    } catch (error) {
+      logger.error('Content visual enhancement failed:', error);
+      return content; // Return original on error
+    }
+  }
+
+  /**
+   * Enhance text content with visuals
+   */
+  async enhanceTextContent(text, options) {
+    const analysis = await this.visualIntelligence.analyzeContent(text, options.context);
+    
+    // If no visual opportunities found, return original
+    if (!analysis.primaryVisual || analysis.confidence < 0.6) {
+      return text;
+    }
+    
+    // Generate the visual
+    const visual = await this.visualIntelligence.generateVisual(
+      text,
+      analysis.primaryVisual.type,
+      {
+        recommendations: analysis,
+        ...options
+      }
+    );
+    
+    // Return enhanced content with visual
+    return `
+      <div class="ai-enhanced-content">
+        <div class="visual-representation">
+          ${visual.svg}
+        </div>
+        <div class="original-content">
+          ${text}
+        </div>
+      </div>
+    `;
+  }
+
+  /**
+   * Enhance structured content (course data) with visuals
+   */
+  async enhanceStructuredContent(content, options) {
+    const enhanced = { ...content };
+    
+    // Enhance course objectives with infographic
+    if (content.objectives && Array.isArray(content.objectives)) {
+      try {
+        const objectivesVisual = await this.visualIntelligence.generateVisual(
+          content.objectives,
+          'infographic',
+          {
+            title: 'Learning Objectives',
+            context: { theme: 'academic' },
+            ...options
+          }
+        );
+        enhanced.objectivesVisual = objectivesVisual.svg;
+      } catch (error) {
+        logger.warn('Failed to generate objectives visual:', error);
+      }
+    }
+    
+    // Enhance sessions
+    if (content.sessions && Array.isArray(content.sessions)) {
+      enhanced.sessions = await Promise.all(
+        content.sessions.map(async (session) => {
+          const enhancedSession = { ...session };
+          
+          // Analyze session content for visual opportunities
+          if (session.content) {
+            const analysis = await this.visualIntelligence.analyzeContent(
+              session.content,
+              { type: 'session', ...options.context }
+            );
+            
+            if (analysis.confidence > 0.7 && analysis.primaryVisual) {
+              try {
+                const visual = await this.visualIntelligence.generateVisual(
+                  session.content,
+                  analysis.primaryVisual.type,
+                  { recommendations: analysis }
+                );
+                enhancedSession.contentVisual = visual.svg;
+              } catch (error) {
+                logger.warn(`Failed to generate visual for session ${session.id}:`, error);
+              }
+            }
+          }
+          
+          // Enhance activities
+          if (session.activities && Array.isArray(session.activities)) {
+            enhancedSession.activities = await this.enhanceActivities(
+              session.activities,
+              options
+            );
+          }
+          
+          return enhancedSession;
+        })
+      );
+    }
+    
+    // Add course overview visualization if we have enough data
+    if (enhanced.sessions && enhanced.sessions.length > 3) {
+      try {
+        const overviewData = {
+          title: content.title,
+          sessions: enhanced.sessions.map(s => ({
+            title: s.title,
+            duration: s.estimated_duration,
+            activities: s.activities ? s.activities.length : 0
+          }))
+        };
+        
+        const overviewVisual = await this.visualIntelligence.generateVisual(
+          overviewData,
+          'timeline',
+          {
+            title: 'Course Overview',
+            context: { theme: options.theme || 'default' }
+          }
+        );
+        enhanced.overviewVisual = overviewVisual.svg;
+      } catch (error) {
+        logger.warn('Failed to generate course overview visual:', error);
+      }
+    }
+    
+    return enhanced;
+  }
+
+  /**
+   * Enhance activities with appropriate visuals
+   */
+  async enhanceActivities(activities, options) {
+    return Promise.all(
+      activities.map(async (activity) => {
+        const enhanced = { ...activity };
+        
+        // Skip if already has visual content
+        if (activity.visual || activity.diagram) {
+          return enhanced;
+        }
+        
+        // Determine if activity would benefit from visualization
+        if (activity.type === 'quiz' && activity.questions) {
+          // Quiz activities might get a progress visualization
+          try {
+            const quizData = {
+              title: activity.title,
+              questionCount: activity.questions.length,
+              estimatedTime: activity.estimated_duration
+            };
+            
+            const visual = await this.visualIntelligence.generateVisual(
+              quizData,
+              'infographic',
+              {
+                context: { type: 'quiz-overview' },
+                width: 400,
+                height: 200
+              }
+            );
+            enhanced.overviewVisual = visual.svg;
+          } catch (error) {
+            logger.debug('Quiz visual generation failed:', error);
+          }
+        } else if (activity.content) {
+          // Analyze activity content for visual opportunities
+          const analysis = await this.visualIntelligence.analyzeContent(
+            activity.content,
+            { type: 'activity', activityType: activity.type }
+          );
+          
+          if (analysis.confidence > 0.75 && analysis.primaryVisual) {
+            try {
+              const visual = await this.visualIntelligence.generateVisual(
+                activity.content,
+                analysis.primaryVisual.type,
+                {
+                  recommendations: analysis,
+                  width: 600,
+                  height: 400
+                }
+              );
+              enhanced.contentVisual = visual.svg;
+            } catch (error) {
+              logger.debug(`Activity visual generation failed for ${activity.id}:`, error);
+            }
+          }
+        }
+        
+        return enhanced;
+      })
+    );
+  }
+
+  /**
+   * Generate comprehensive visual report for course
+   */
+  async generateVisualReport(courseData, options = {}) {
+    if (!this.visualIntelligence) {
+      throw new ProcessingError('Visual Intelligence service not available');
+    }
+    
+    const report = {
+      courseId: courseData.id,
+      generatedAt: new Date().toISOString(),
+      visuals: []
+    };
+    
+    try {
+      // 1. Course Overview Infographic
+      const overviewVisual = await this.visualIntelligence.generateVisual(
+        {
+          title: courseData.title,
+          duration: courseData.total_duration,
+          sessions: courseData.sessions ? courseData.sessions.length : 0,
+          objectives: courseData.objectives ? courseData.objectives.length : 0,
+          difficulty: courseData.difficulty
+        },
+        'infographic',
+        {
+          title: 'Course Overview',
+          context: { theme: 'academic' },
+          width: 800,
+          height: 600
+        }
+      );
+      report.visuals.push({
+        type: 'overview',
+        title: 'Course Overview',
+        svg: overviewVisual.svg,
+        quality: overviewVisual.metadata.quality
+      });
+      
+      // 2. Learning Path Flowchart
+      if (courseData.sessions && courseData.sessions.length > 0) {
+        const pathData = courseData.sessions.map((s, i) => ({
+          text: s.title,
+          number: i + 1,
+          duration: s.estimated_duration
+        }));
+        
+        const pathVisual = await this.visualIntelligence.generateVisual(
+          pathData,
+          'flowchart',
+          {
+            title: 'Learning Path',
+            context: { theme: options.theme || 'tech' }
+          }
+        );
+        report.visuals.push({
+          type: 'learning-path',
+          title: 'Learning Path',
+          svg: pathVisual.svg,
+          quality: pathVisual.metadata.quality
+        });
+      }
+      
+      // 3. Activity Distribution Chart
+      const activityTypes = {};
+      if (courseData.sessions) {
+        courseData.sessions.forEach(session => {
+          if (session.activities) {
+            session.activities.forEach(activity => {
+              activityTypes[activity.type] = (activityTypes[activity.type] || 0) + 1;
+            });
+          }
+        });
+      }
+      
+      if (Object.keys(activityTypes).length > 0) {
+        const chartData = Object.entries(activityTypes).map(([type, count]) => ({
+          label: type.charAt(0).toUpperCase() + type.slice(1),
+          value: count
+        }));
+        
+        const chartVisual = await this.visualIntelligence.generateVisual(
+          chartData,
+          'data-visualization',
+          {
+            title: 'Activity Distribution',
+            context: { chartType: 'bar' }
+          }
+        );
+        report.visuals.push({
+          type: 'activity-distribution',
+          title: 'Activity Distribution',
+          svg: chartVisual.svg,
+          quality: chartVisual.metadata.quality
+        });
+      }
+      
+      // 4. Session-specific visuals
+      if (courseData.sessions && options.includeSessionVisuals) {
+        for (const session of courseData.sessions.slice(0, 5)) { // Limit to first 5
+          const sessionAnalysis = await this.visualIntelligence.analyzeContent(
+            session.content || session,
+            { type: 'session' }
+          );
+          
+          if (sessionAnalysis.confidence > 0.7) {
+            const sessionVisual = await this.visualIntelligence.generateVisual(
+              session.content || session,
+              sessionAnalysis.primaryVisual.type,
+              {
+                title: session.title,
+                recommendations: sessionAnalysis
+              }
+            );
+            report.visuals.push({
+              type: 'session',
+              sessionId: session.id,
+              title: session.title,
+              visualType: sessionAnalysis.primaryVisual.type,
+              svg: sessionVisual.svg,
+              quality: sessionVisual.metadata.quality
+            });
+          }
+        }
+      }
+      
+      // Calculate overall visual quality
+      report.overallQuality = Math.round(
+        report.visuals.reduce((sum, v) => sum + v.quality, 0) / report.visuals.length
+      );
+      
+      return report;
+    } catch (error) {
+      logger.error('Visual report generation failed:', error);
+      throw new ProcessingError(`Failed to generate visual report: ${error.message}`);
+    }
   }
 }
 

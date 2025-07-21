@@ -36,6 +36,7 @@ System Architecture Documentation for AI Course Creator
 - **Hybrid Search System:** Combines semantic (vector) + keyword (BM25) search with QueryFusionRetriever and Reciprocal Rank Fusion
 - **Document Processing:** Automated quality scoring, readability analysis, language detection, and intelligent content segmentation
 - **Claude AI Integration:** Context-aware course generation with prompt engineering, caching, and parallel processing
+- **Visual Intelligence:** AI-powered visual generation that analyzes content and creates infographics, flowcharts, data visualizations, and diagrams
 - **Multi-tenant:** Row Level Security ensures user data isolation
 - **Async Processing:** File uploads and course generation handled via Bull queues with progress tracking
 - **Authentication:** JWT + API key dual authentication with role-based permissions

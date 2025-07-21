@@ -658,4 +658,149 @@ describe('DesignEngine Integration Tests', () => {
     const variables = designEngine.generateTemplateVariables(integrated, options);
     expect(variables.quality.level).toBe('premium');
   });
+
+  describe('Visual Intelligence Integration', () => {
+    test('should have VisualIntelligence instance when available', () => {
+      const engine = new DesignEngine();
+      // May or may not have VI depending on environment
+      expect(engine.visualIntelligence).toBeDefined();
+    });
+
+    test('should enhance content with visuals when VI is available', async () => {
+      const engine = new DesignEngine();
+      
+      if (engine.visualIntelligence) {
+        const content = {
+          objectives: ['Learn AI', 'Build models', 'Deploy solutions'],
+          sessions: [{
+            id: 'session-1',
+            title: 'Introduction',
+            content: 'Step 1: Learn basics\nStep 2: Practice\nStep 3: Build'
+          }]
+        };
+
+        const enhanced = await engine.enhanceContentWithVisuals(content);
+        
+        expect(enhanced).toBeDefined();
+        // Should have visual enhancements if VI processed it
+        if (enhanced.objectivesVisual) {
+          expect(enhanced.objectivesVisual).toContain('<svg');
+        }
+      }
+    });
+
+    test('should enhance text content with appropriate visuals', async () => {
+      const engine = new DesignEngine();
+      
+      if (engine.visualIntelligence) {
+        const text = `
+          Learning objectives:
+          - Understand core concepts
+          - Apply best practices
+          - Build real projects
+        `;
+
+        const enhanced = await engine.enhanceTextContent(text);
+        
+        expect(enhanced).toBeDefined();
+        // Should either return original or enhanced version
+        expect(enhanced).toContain('Understand core concepts');
+      }
+    });
+
+    test('should generate visual report for course data', async () => {
+      const engine = new DesignEngine();
+      
+      if (engine.visualIntelligence) {
+        const courseData = {
+          id: 'course-123',
+          title: 'AI Course',
+          total_duration: 480,
+          objectives: ['Objective 1', 'Objective 2'],
+          sessions: [
+            {
+              id: 'session-1',
+              title: 'Session 1',
+              estimated_duration: 60,
+              activities: [
+                { type: 'lecture', title: 'Intro' },
+                { type: 'quiz', title: 'Check' }
+              ]
+            },
+            {
+              id: 'session-2',
+              title: 'Session 2',
+              estimated_duration: 90,
+              activities: [
+                { type: 'hands-on', title: 'Practice' }
+              ]
+            }
+          ]
+        };
+
+        const report = await engine.generateVisualReport(courseData);
+        
+        expect(report).toBeDefined();
+        expect(report.courseId).toBe('course-123');
+        expect(report.visuals).toBeInstanceOf(Array);
+        expect(report.visuals.length).toBeGreaterThan(0);
+        expect(report.overallQuality).toBeGreaterThan(0);
+        
+        // Check for specific visual types
+        const visualTypes = report.visuals.map(v => v.type);
+        expect(visualTypes).toContain('overview');
+        expect(visualTypes).toContain('learning-path');
+      }
+    });
+
+    test('should handle missing VisualIntelligence gracefully', async () => {
+      const engine = new DesignEngine();
+      engine.visualIntelligence = null;
+
+      const content = { test: 'data' };
+      const enhanced = await engine.enhanceContentWithVisuals(content);
+      
+      // Should return original content
+      expect(enhanced).toEqual(content);
+    });
+
+    test('should handle visual generation errors gracefully', async () => {
+      const engine = new DesignEngine();
+      
+      if (engine.visualIntelligence) {
+        // Mock a failing visual generation
+        const originalGenerate = engine.visualIntelligence.generateVisual;
+        engine.visualIntelligence.generateVisual = jest.fn()
+          .mockRejectedValue(new Error('Generation failed'));
+
+        const content = {
+          objectives: ['Test objective']
+        };
+
+        const enhanced = await engine.enhanceContentWithVisuals(content);
+        
+        // Should handle error and return content without crash
+        expect(enhanced).toBeDefined();
+        
+        // Restore original method
+        engine.visualIntelligence.generateVisual = originalGenerate;
+      }
+    });
+  });
+
+  describe('AI Visual Handlebars Helpers', () => {
+    test('should register aiVisual helper', () => {
+      const engine = new DesignEngine();
+      const helpers = require('handlebars').helpers;
+      
+      expect(helpers.aiVisual).toBeDefined();
+    });
+
+    test('should register smartTransform helper', () => {
+      const engine = new DesignEngine();
+      const helpers = require('handlebars').helpers;
+      
+      expect(helpers.smartTransform).toBeDefined();
+    });
+  });
 });

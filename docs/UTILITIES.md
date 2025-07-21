@@ -48,6 +48,37 @@ The backend includes comprehensive utility modules providing enterprise-grade fu
 - Keyword extraction and summarization
 - Content chunking strategies
 
+### 5. visualIntelligence.js
+**Purpose:** AI-powered visual content generation utilities
+
+**Key Features:**
+- **Pattern Detection:** Identifies visual opportunities in content
+  - List patterns (bullets, numbered lists)
+  - Process patterns (steps, workflows)
+  - Data patterns (percentages, metrics)
+  - Timeline patterns (dates, chronology)
+  - Comparison patterns (vs, pros/cons)
+
+- **SVG Generation Utilities:**
+  - `generateInfographic()`: Creates visual cards from lists
+  - `generateFlowchart()`: Process diagrams with connections
+  - `generateDataVisualization()`: Bar and pie charts
+  - `generateTimeline()`: Chronological event displays
+  - `generateComparisonChart()`: Side-by-side comparisons
+
+- **Helper Functions:**
+  - `findBestIcon()`: Semantic icon selection
+  - `wrapText()`: SVG text wrapping
+  - `escapeXml()`: XML character escaping
+  - `assessVisualQuality()`: Quality scoring
+  - `getColorFromPalette()`: Theme-based colors
+
+- **Content Extraction:**
+  - `extractListElements()`: Parse bullet/numbered lists
+  - `extractProcessSteps()`: Identify workflow steps
+  - `extractDataPoints()`: Find metrics and percentages
+  - `extractTimelineEvents()`: Parse chronological data
+
 ### 5. fileHelpers.js
 **Purpose:** File system operations and management
 

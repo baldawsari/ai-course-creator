@@ -1,0 +1,25 @@
+{
+  "courseId": "demo-course",
+  "generatedAt": "2025-07-21T07:56:50.938Z",
+  "visuals": [
+    {
+      "type": "overview",
+      "title": "Course Overview",
+      "svg": "<svg viewBox=\"0 0 800 600\" xmlns=\"http://www.w3.org/2000/svg\">\n      <defs>\n        <linearGradient id=\"bgGradient\" x1=\"0%\" y1=\"0%\" x2=\"100%\" y2=\"100%\">\n          <stop offset=\"0%\" style=\"stop-color:#6366f1;stop-opacity:0.1\" />\n          <stop offset=\"100%\" style=\"stop-color:#4f46e5;stop-opacity:0.05\" />\n        </linearGradient>\n        <filter id=\"shadow\">\n          <feDropShadow dx=\"0\" dy=\"2\" stdDeviation=\"3\" flood-opacity=\"0.1\"/>\n        </filter>\n      </defs>\n    <rect width=\"800\" height=\"600\" fill=\"#f8fafc\" /><rect width=\"800\" height=\"600\" fill=\"url(#bgGradient)\" />\n        <text x=\"400\" y=\"60\" \n              text-anchor=\"middle\" \n              font-size=\"28\" \n              font-weight=\"bold\" \n              fill=\"#1f2937\">\n          Course Overview\n        </text>\n      </svg>",
+      "quality": 95
+    },
+    {
+      "type": "learning-path",
+      "title": "Learning Path",
+      "svg": "<svg viewBox=\"0 0 800 600\" xmlns=\"http://www.w3.org/2000/svg\">\n      <defs>\n        <linearGradient id=\"nodeGradient\" x1=\"0%\" y1=\"0%\" x2=\"0%\" y2=\"100%\">\n          <stop offset=\"0%\" style=\"stop-color:#6366f1;stop-opacity:1\" />\n          <stop offset=\"100%\" style=\"stop-color:#4f46e5;stop-opacity:1\" />\n        </linearGradient>\n        <marker id=\"arrowhead\" markerWidth=\"10\" markerHeight=\"7\" \n                refX=\"9\" refY=\"3.5\" orient=\"auto\">\n          <polygon points=\"0 0, 10 3.5, 0 7\" fill=\"#6366f1\" />\n        </marker>\n        <filter id=\"shadow\">\n          <feDropShadow dx=\"0\" dy=\"2\" stdDeviation=\"3\" flood-opacity=\"0.2\"/>\n        </filter>\n      </defs>\n    <rect width=\"800\" height=\"600\" fill=\"#f8fafc\" /></svg>",
+      "quality": 85
+    },
+    {
+      "type": "activity-distribution",
+      "title": "Activity Distribution",
+      "svg": "<svg viewBox=\"0 0 800 400\" xmlns=\"http://www.w3.org/2000/svg\"><rect width=\"800\" height=\"400\" fill=\"#f8fafc\" /><text x=\"400\" y=\"200\" text-anchor=\"middle\" fill=\"#1f2937\">No data available</text></svg>",
+      "quality": 80
+    }
+  ],
+  "overallQuality": 87
+}

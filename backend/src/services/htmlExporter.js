@@ -275,7 +275,24 @@ class HTMLExporter {
       const html = compiledTemplate(templateData);
       
       // Generate CSS
-      const css = await this.generateTemplateCSS(template.name, options.customizations);
+      let css = await this.generateTemplateCSS(template.name, options.customizations);
+      
+      // If DesignEngine is available, use its advanced CSS generation
+      if (this.designEngine) {
+        try {
+          const designCSS = await this.designEngine.generateCSS(
+            template.name,
+            options.customizations || {},
+            {
+              optimize: true,
+              includePrint: true
+            }
+          );
+          css = designCSS + '\n\n' + css;
+        } catch (error) {
+          logger.warn('Failed to generate DesignEngine CSS:', error);
+        }
+      }
       
       // Copy assets
       await this.copyTemplateAssets(template.name, outputDir);
@@ -290,6 +307,30 @@ class HTMLExporter {
       
       // Copy course assets (images, videos, etc.)
       await this.copyCourseAssets(courseData, outputDir);
+      
+      // Generate visual report if requested
+      if (this.designEngine && options.generateVisualReport) {
+        try {
+          const visualReport = await this.designEngine.generateVisualReport(
+            courseData,
+            {
+              theme: options.customizations?.theme,
+              includeSessionVisuals: true
+            }
+          );
+          
+          // Save visual report
+          const reportPath = path.join(outputDir, 'visual-report.json');
+          await fs.writeFile(reportPath, JSON.stringify(visualReport, null, 2));
+          
+          // Create visual gallery HTML
+          const galleryHtml = this.generateVisualGallery(visualReport);
+          const galleryPath = path.join(outputDir, 'visual-gallery.html');
+          await fs.writeFile(galleryPath, galleryHtml);
+        } catch (error) {
+          logger.warn('Failed to generate visual report:', error);
+        }
+      }
       
       return {
         exportId,
@@ -460,7 +501,7 @@ class HTMLExporter {
    */
   async processContent(courseData, options) {
     try {
-      const processedSessions = courseData.sessions.map(session => ({
+      const processedSessions = await Promise.all(courseData.sessions.map(async session => ({
         ...session,
         content: this.processSessionContent(session.content),
         description: this.processMarkdown(session.description),
@@ -469,7 +510,7 @@ class HTMLExporter {
           content: this.processActivityContent(activity.content),
           description: this.processMarkdown(activity.description)
         }))
-      }));
+      })));
       
       return {
         sessions: processedSessions,
@@ -1065,6 +1106,122 @@ class HTMLExporter {
     } catch (error) {
       logger.warn(`Cleanup failed for export ${exportId}: ${error.message}`);
     }
+  }
+
+  /**
+   * Generate visual gallery HTML
+   */
+  generateVisualGallery(visualReport) {
+    let html = `
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Course Visual Gallery</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      margin: 0;
+      padding: 20px;
+      background: #f8fafc;
+    }
+    .gallery-header {
+      text-align: center;
+      margin-bottom: 40px;
+    }
+    .gallery-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+      gap: 30px;
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+    .visual-card {
+      background: white;
+      border-radius: 8px;
+      padding: 20px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+    .visual-title {
+      font-size: 1.25rem;
+      font-weight: 600;
+      margin-bottom: 10px;
+      color: #1f2937;
+    }
+    .visual-type {
+      font-size: 0.875rem;
+      color: #6b7280;
+      margin-bottom: 15px;
+    }
+    .visual-quality {
+      display: inline-block;
+      padding: 4px 12px;
+      border-radius: 20px;
+      font-size: 0.75rem;
+      font-weight: 500;
+      margin-bottom: 15px;
+    }
+    .quality-high { background: #d1fae5; color: #065f46; }
+    .quality-medium { background: #dbeafe; color: #1e40af; }
+    .quality-low { background: #fef3c7; color: #92400e; }
+    .visual-container {
+      width: 100%;
+      min-height: 300px;
+      border: 1px solid #e5e7eb;
+      border-radius: 4px;
+      overflow: hidden;
+    }
+    .visual-container svg {
+      width: 100%;
+      height: auto;
+    }
+  </style>
+</head>
+<body>
+  <div class="gallery-header">
+    <h1>Course Visual Gallery</h1>
+    <p>AI-Generated Visual Content • Overall Quality: ${visualReport.overallQuality}%</p>
+  </div>
+  <div class="gallery-grid">
+`;
+
+    visualReport.visuals.forEach(visual => {
+      const qualityClass = visual.quality >= 85 ? 'quality-high' : 
+                          visual.quality >= 70 ? 'quality-medium' : 'quality-low';
+      
+      html += `
+    <div class="visual-card">
+      <h2 class="visual-title">${this.escapeHtml(visual.title)}</h2>
+      <div class="visual-type">Type: ${visual.visualType || visual.type}</div>
+      <div class="visual-quality ${qualityClass}">Quality: ${visual.quality}%</div>
+      <div class="visual-container">
+        ${visual.svg}
+      </div>
+    </div>
+`;
+    });
+
+    html += `
+  </div>
+</body>
+</html>
+`;
+
+    return html;
+  }
+
+  /**
+   * Escape HTML special characters
+   */
+  escapeHtml(str) {
+    if (!str) return '';
+    return str
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#x27;');
   }
 }
 
