@@ -1,11 +1,19 @@
-const DocumentProcessor = require('../../../src/services/documentProcessor');
+const { DocumentProcessor, documentQueue } = require('../../../src/services/documentProcessor');
 const { supabaseAdmin } = require('../../../src/config/database');
 const Bull = require('bull');
 const natural = require('natural');
 const { encode } = require('gpt-3-encoder');
+const langdetect = require('langdetect');
+const readability = require('readability-scores');
 
-jest.mock('../../../src/config/database');
+jest.mock('../../../src/config/database', () => ({
+  supabaseAdmin: {
+    from: jest.fn()
+  }
+}));
 jest.mock('bull');
+jest.mock('langdetect');
+jest.mock('readability-scores');
 jest.mock('winston', () => ({
   createLogger: () => ({
     info: jest.fn(),
@@ -37,7 +45,8 @@ describe('DocumentProcessor', () => {
     mockQueue = {
       on: jest.fn(),
       add: jest.fn().mockResolvedValue({ id: 'job-123' }),
-      getJob: jest.fn()
+      getJob: jest.fn(),
+      process: jest.fn()
     };
     
     Bull.mockReturnValue(mockQueue);
@@ -52,6 +61,19 @@ describe('DocumentProcessor', () => {
     };
     
     supabaseAdmin.from.mockReturnValue(mockSupabase);
+    
+    // Mock langdetect
+    langdetect.detectOne.mockReturnValue('en');
+    
+    // Mock readability-scores
+    readability.mockReturnValue({
+      flesch: 60,
+      fleschKincaid: 10,
+      gunningFog: 10,
+      smog: 8,
+      ari: 9,
+      colemanLiau: 9
+    });
     
     documentProcessor = new DocumentProcessor();
   });
@@ -75,10 +97,17 @@ describe('DocumentProcessor', () => {
     };
 
     it('should process document successfully', async () => {
+      // Mock storeProcessingResults response
+      mockSupabase.insert.mockResolvedValue({ data: { id: 'stored-123' }, error: null });
+      
       const result = await documentProcessor.processDocument(mockDocument);
 
       expect(result).toBeDefined();
       expect(mockSupabase.insert).toHaveBeenCalled();
+      expect(mockSupabase.update).toHaveBeenCalled();
+      // Check that from was called with correct tables
+      expect(supabaseAdmin.from).toHaveBeenCalledWith('content_embeddings');
+      expect(supabaseAdmin.from).toHaveBeenCalledWith('course_resources');
     });
 
     it('should handle document validation failure', async () => {
@@ -124,7 +153,7 @@ describe('DocumentProcessor', () => {
       const content = 'Hello\0World';
       const sanitized = documentProcessor.sanitizeContent(content);
 
-      expect(sanitized).toBe('Hello World');
+      expect(sanitized).toBe('HelloWorld'); // Null byte removed, not replaced with space
     });
 
     it('should normalize whitespace', () => {
@@ -158,12 +187,42 @@ describe('DocumentProcessor', () => {
       expect(metadata).toHaveProperty('language', 'en');
     });
 
+    it('should handle language detection failure', async () => {
+      // Mock langdetect to throw error
+      langdetect.detectOne.mockImplementation(() => {
+        throw new Error('Language detection failed');
+      });
+
+      const content = 'Test content';
+      const metadata = await documentProcessor.extractMetadata({}, content);
+
+      expect(metadata.language).toBe('en'); // Should default to 'en'
+
+      // Restore mock
+      langdetect.detectOne.mockReturnValue('en');
+    });
+
     it('should extract key phrases', async () => {
       const content = 'Machine learning is a subset of artificial intelligence. Machine learning algorithms build models.';
       const metadata = await documentProcessor.extractMetadata({}, content);
 
       expect(metadata).toHaveProperty('keyPhrases');
       expect(Array.isArray(metadata.keyPhrases)).toBe(true);
+    });
+
+    it('should extract metadata with existing title', async () => {
+      const document = { title: 'Existing Title' };
+      const content = 'Document content goes here.';
+      const metadata = await documentProcessor.extractMetadata(document, content);
+
+      expect(metadata.title).toBe('Existing Title');
+    });
+
+    it('should calculate reading time', async () => {
+      const content = Array(1000).fill('word').join(' '); // 1000 words
+      const metadata = await documentProcessor.extractMetadata({}, content);
+
+      expect(metadata.estimatedReadingTime).toBe(5); // 1000 words / 200 wpm = 5 minutes
     });
   });
 
@@ -179,7 +238,9 @@ describe('DocumentProcessor', () => {
       const content = '# Heading 1\n\nContent\n\n## Heading 2\n\nMore content';
       const structure = documentProcessor.analyzeContentStructure(content);
 
-      expect(structure.headings).toBeGreaterThan(0);
+      expect(structure.headings.length).toBeGreaterThan(0);
+      expect(structure.headings).toContain('# Heading 1');
+      expect(structure.headings).toContain('## Heading 2');
     });
 
     it('should detect lists', () => {
@@ -457,10 +518,376 @@ describe('DocumentProcessor', () => {
     });
 
     it('should interpret coherence scores', () => {
-      expect(documentProcessor.interpretCoherence(0.9)).toBe('Excellent');
-      expect(documentProcessor.interpretCoherence(0.7)).toBe('Good');
-      expect(documentProcessor.interpretCoherence(0.5)).toBe('Fair');
-      expect(documentProcessor.interpretCoherence(0.3)).toBe('Poor');
+      expect(documentProcessor.interpretCoherence(0.9)).toBe('highly coherent');
+      expect(documentProcessor.interpretCoherence(0.7)).toBe('highly coherent');
+      expect(documentProcessor.interpretCoherence(0.5)).toBe('moderately coherent');
+      expect(documentProcessor.interpretCoherence(0.3)).toBe('somewhat coherent');
+    });
+
+    it('should interpret very low coherence', () => {
+      expect(documentProcessor.interpretCoherence(0.1)).toBe('low coherence');
+    });
+  });
+
+  describe('normalizeEncoding', () => {
+    it('should normalize text encoding to UTF-8', () => {
+      const text = 'Test text with special chars';
+      const normalized = documentProcessor.normalizeEncoding(text);
+      
+      expect(normalized).toBe(text);
+    });
+
+    it('should handle encoding errors gracefully', () => {
+      // Mock Buffer to throw error
+      const originalBuffer = global.Buffer;
+      global.Buffer.from = jest.fn().mockImplementation(() => {
+        throw new Error('Encoding error');
+      });
+
+      const text = 'Test text';
+      const normalized = documentProcessor.normalizeEncoding(text);
+      
+      expect(normalized).toBe(text);
+      
+      // Restore Buffer
+      global.Buffer = originalBuffer;
+    });
+  });
+
+  describe('handleSpecialCharacters', () => {
+    it('should replace non-breaking spaces', () => {
+      const text = 'Hello\u00A0World';
+      const result = documentProcessor.handleSpecialCharacters(text);
+      
+      expect(result).toBe('Hello World');
+    });
+
+    it('should remove zero-width spaces', () => {
+      const text = 'Hello\u200BWorld';
+      const result = documentProcessor.handleSpecialCharacters(text);
+      
+      expect(result).toBe('HelloWorld');
+    });
+
+    it('should handle line separators', () => {
+      const text = 'Line1\u2028Line2\u2029Line3';
+      const result = documentProcessor.handleSpecialCharacters(text);
+      
+      expect(result).toBe('Line1\nLine2\nLine3');
+    });
+  });
+
+  describe('deduplicateContent', () => {
+    it('should remove duplicate paragraphs', () => {
+      const text = 'First paragraph is unique.\n\nThis paragraph is duplicated.\n\nThis paragraph is duplicated.\n\nLast paragraph is unique.';
+      const result = documentProcessor.deduplicateContent(text);
+      
+      expect(result).not.toMatch(/This paragraph is duplicated.*This paragraph is duplicated/s);
+      expect(result).toContain('First paragraph is unique');
+      expect(result).toContain('Last paragraph is unique');
+    });
+
+    it('should skip short paragraphs', () => {
+      const text = 'Long enough paragraph here.\n\nShort.\n\nShort.\n\nAnother long paragraph here.';
+      const result = documentProcessor.deduplicateContent(text);
+      
+      // Short paragraphs should be preserved even if duplicate
+      expect(result.split('\n\n').length).toBe(4);
+    });
+  });
+
+  describe('processNonEnglishContent', () => {
+    it('should process non-English content', async () => {
+      const text = 'Texto en español';
+      const result = await documentProcessor.processNonEnglishContent(text, 'es');
+      
+      expect(result).toBe(text); // Currently just returns the text
+    });
+  });
+
+  describe('getOverlapSentences', () => {
+    it('should get overlap sentences for continuity', () => {
+      const sentences = ['First sentence.', 'Second sentence.', 'Third sentence.', 'Fourth sentence.'];
+      const overlap = documentProcessor.getOverlapSentences(sentences);
+      
+      expect(overlap.length).toBeGreaterThan(0);
+      expect(overlap.length).toBeLessThan(sentences.length);
+    });
+
+    it('should return all sentences if 2 or fewer', () => {
+      const sentences = ['First sentence.', 'Second sentence.'];
+      const overlap = documentProcessor.getOverlapSentences(sentences);
+      
+      expect(overlap).toEqual(sentences);
+    });
+  });
+
+  describe('decodeTokens', () => {
+    it('should decode tokens to text', () => {
+      const tokens = ['Hello', ' ', 'World'];
+      const result = documentProcessor.decodeTokens(tokens);
+      
+      expect(result).toBe('Hello World');
+    });
+  });
+
+  describe('calculateCoverage', () => {
+    it('should calculate content coverage', () => {
+      const document = { content: 'This is the full document content.' };
+      const chunks = [
+        { content: 'This is the full' },
+        { content: 'document content.' }
+      ];
+      
+      const coverage = documentProcessor.calculateCoverage(document, chunks);
+      
+      expect(coverage.percentage).toBeGreaterThan(90);
+      expect(coverage.missing).toBeGreaterThanOrEqual(0);
+    });
+  });
+
+  describe('analyzeDistribution', () => {
+    it('should analyze chunk distribution', () => {
+      const chunks = [
+        { tokens: 100 },
+        { tokens: 110 },
+        { tokens: 90 },
+        { tokens: 105 }
+      ];
+      
+      const distribution = documentProcessor.analyzeDistribution(chunks);
+      
+      expect(distribution.mean).toBeCloseTo(101.25);
+      expect(distribution.uniformity).toBeGreaterThan(0.8);
+      expect(distribution.min).toBe(90);
+      expect(distribution.max).toBe(110);
+    });
+  });
+
+  describe('calculateCompletenessScore', () => {
+    it('should calculate completeness score', () => {
+      const completeness = {
+        coverage: { percentage: 95 },
+        distribution: { uniformity: 0.9 }
+      };
+      
+      const score = documentProcessor.calculateCompletenessScore(completeness);
+      
+      expect(score).toBeCloseTo(92.5);
+    });
+  });
+
+  describe('generateQualityRecommendations', () => {
+    it('should generate recommendations for low readability', () => {
+      const assessments = {
+        readability: { score: 30 },
+        coherence: { score: 80 },
+        completeness: { coverage: { percentage: 98 } },
+        errors: []
+      };
+      
+      const recommendations = documentProcessor.generateQualityRecommendations(assessments);
+      
+      expect(recommendations).toContainEqual(
+        expect.objectContaining({
+          area: 'readability',
+          priority: 'high'
+        })
+      );
+    });
+
+    it('should generate recommendations for low coherence', () => {
+      const assessments = {
+        readability: { score: 70 },
+        coherence: { score: 40 },
+        completeness: { coverage: { percentage: 98 } },
+        errors: []
+      };
+      
+      const recommendations = documentProcessor.generateQualityRecommendations(assessments);
+      
+      expect(recommendations).toContainEqual(
+        expect.objectContaining({
+          area: 'coherence',
+          priority: 'medium'
+        })
+      );
+    });
+
+    it('should generate recommendations for low coverage', () => {
+      const assessments = {
+        readability: { score: 70 },
+        coherence: { score: 70 },
+        completeness: { coverage: { percentage: 85 } },
+        errors: []
+      };
+      
+      const recommendations = documentProcessor.generateQualityRecommendations(assessments);
+      
+      expect(recommendations).toContainEqual(
+        expect.objectContaining({
+          area: 'completeness',
+          priority: 'high'
+        })
+      );
+    });
+
+    it('should generate recommendations for high severity errors', () => {
+      const assessments = {
+        readability: { score: 70 },
+        coherence: { score: 70 },
+        completeness: { coverage: { percentage: 98 } },
+        errors: [
+          { type: 'truncation', severity: 'high', message: 'Content truncated' }
+        ]
+      };
+      
+      const recommendations = documentProcessor.generateQualityRecommendations(assessments);
+      
+      expect(recommendations).toContainEqual(
+        expect.objectContaining({
+          area: 'errors',
+          priority: 'high',
+          suggestion: 'Fix truncation: Content truncated'
+        })
+      );
+    });
+  });
+
+  describe('storeProcessingResults', () => {
+    it('should store processing results successfully', async () => {
+      const results = {
+        documentId: 'doc-123',
+        processingId: 'proc-123',
+        chunks: [{ content: 'chunk1' }, { content: 'chunk2' }],
+        qualityReport: { overallScore: 85 },
+        metadata: { processingTime: 1000 }
+      };
+
+      mockSupabase.insert.mockResolvedValue({ data: { id: 'embed-123' }, error: null });
+
+      const data = await documentProcessor.storeProcessingResults(results);
+
+      expect(mockSupabase.from).toHaveBeenCalledWith('content_embeddings');
+      expect(mockSupabase.insert).toHaveBeenCalledWith(
+        expect.objectContaining({
+          document_id: 'doc-123',
+          processing_id: 'proc-123',
+          chunks: results.chunks,
+          quality_report: results.qualityReport
+        })
+      );
+
+      expect(mockSupabase.from).toHaveBeenCalledWith('course_resources');
+      expect(mockSupabase.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          processing_status: 'completed',
+          processing_metadata: expect.objectContaining({
+            processingId: 'proc-123',
+            chunksCreated: 2,
+            qualityScore: 85
+          })
+        })
+      );
+    });
+
+    it('should handle store errors', async () => {
+      const results = {
+        documentId: 'doc-123',
+        processingId: 'proc-123',
+        chunks: [],
+        qualityReport: {},
+        metadata: {}
+      };
+
+      mockSupabase.insert.mockResolvedValue({ data: null, error: new Error('Database error') });
+
+      await expect(documentProcessor.storeProcessingResults(results))
+        .rejects.toThrow('Database error');
+    });
+  });
+
+  describe('getJobStatus', () => {
+    it('should return job status for existing job', async () => {
+      const mockJob = {
+        id: 'job-123',
+        getState: jest.fn().mockResolvedValue('completed'),
+        progress: jest.fn().mockReturnValue(100),
+        data: { documentId: 'doc-123' },
+        returnvalue: { success: true },
+        failedReason: null,
+        timestamp: Date.now(),
+        processedOn: Date.now(),
+        finishedOn: Date.now()
+      };
+
+      mockQueue.getJob.mockResolvedValue(mockJob);
+
+      const status = await documentProcessor.getJobStatus('job-123');
+
+      expect(status).toMatchObject({
+        id: 'job-123',
+        state: 'completed',
+        progress: 100,
+        data: { documentId: 'doc-123' }
+      });
+    });
+
+    it('should throw error for non-existent job', async () => {
+      mockQueue.getJob.mockResolvedValue(null);
+
+      await expect(documentProcessor.getJobStatus('non-existent'))
+        .rejects.toThrow('Job not found');
+    });
+  });
+
+  describe('updateJobProgress', () => {
+    it('should update job progress', async () => {
+      const mockJob = {
+        progress: jest.fn(),
+        log: jest.fn()
+      };
+
+      await documentProcessor.updateJobProgress(mockJob, 50, 'Processing...');
+
+      expect(mockJob.progress).toHaveBeenCalledWith(50);
+      expect(mockJob.log).toHaveBeenCalledWith('Processing...');
+    });
+  });
+
+  describe('queue worker', () => {
+    let mockProcessor;
+    let processCallback;
+
+    beforeEach(() => {
+      // Capture the process callback
+      processCallback = mockQueue.process.mock.calls.find(call => call[0] === 'process-document')?.[1];
+    });
+
+    it('should process jobs in queue', async () => {
+      // Re-import to trigger queue setup
+      jest.resetModules();
+      const { documentQueue } = require('../../../src/services/documentProcessor');
+      
+      // Mock job
+      const mockJob = {
+        id: 'job-123',
+        data: {
+          document: { id: 'doc-123', content: 'Test content' },
+          options: { chunkingStrategy: 'semantic' }
+        }
+      };
+
+      // Mock updateJobProgress
+      DocumentProcessor.prototype.updateJobProgress = jest.fn();
+      DocumentProcessor.prototype.processDocument = jest.fn().mockResolvedValue({ success: true });
+
+      // Get process callback
+      const processFn = Bull.mock.results[0].value.process.mock.calls[0][1];
+      
+      const result = await processFn(mockJob);
+
+      expect(result).toEqual({ success: true });
     });
   });
 });

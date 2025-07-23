@@ -9,6 +9,7 @@ module.exports = {
   },
   collectCoverageFrom: [
     'src/**/*.ts',
+    'src/**/*.js',
     '!src/**/*.d.ts',
     '!src/index.ts',
     '!src/types/**',
@@ -25,6 +26,6 @@ module.exports = {
   },
   coverageDirectory: 'coverage',
   coverageReporters: ['text', 'lcov', 'html'],
-  // setupFilesAfterEnv: ['<rootDir>/tests/setup.ts'], // Commented out as setup.ts doesn't exist
+  setupFilesAfterEnv: ['<rootDir>/jest.setup.js'],
   testTimeout: 30000,
 };

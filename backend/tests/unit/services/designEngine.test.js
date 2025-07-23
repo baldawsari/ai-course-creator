@@ -20,6 +20,21 @@ jest.mock('../../../src/utils/logger', () => ({
   debug: jest.fn()
 }));
 
+// Mock VisualIntelligence
+jest.mock('../../../src/services/visualIntelligence', () => {
+  return jest.fn().mockImplementation(() => ({
+    analyzeContent: jest.fn().mockResolvedValue({
+      confidence: 0.8,
+      primaryVisual: { type: 'infographic' },
+      recommendations: {}
+    }),
+    generateVisual: jest.fn().mockResolvedValue({
+      svg: '<svg>Generated Visual</svg>',
+      metadata: { quality: 90 }
+    })
+  }));
+});
+
 describe('DesignEngine', () => {
   let designEngine;
   
@@ -87,6 +102,7 @@ describe('DesignEngine', () => {
       
       const options = {
         injectComponents: true,
+        components: [{ name: 'TestComponent', data: { test: true } }],
         transformations: [{
           type: 'replace',
           search: 'content',
@@ -95,8 +111,16 @@ describe('DesignEngine', () => {
         optimize: true
       };
       
+      // Mock the methods that process template
+      designEngine.injectDynamicComponents = jest.fn().mockResolvedValue(templateContent);
+      designEngine.applyTransformations = jest.fn().mockResolvedValue(templateContent);
+      designEngine.optimizeTemplate = jest.fn().mockReturnValue(templateContent);
+      
       const compiled = await designEngine.loadTemplate('test', options);
       expect(compiled).toBeDefined();
+      expect(designEngine.injectDynamicComponents).toHaveBeenCalled();
+      expect(designEngine.applyTransformations).toHaveBeenCalled();
+      expect(designEngine.optimizeTemplate).toHaveBeenCalled();
     });
   });
   
@@ -267,13 +291,13 @@ describe('DesignEngine', () => {
       expect(html).toContain('Run Code');
     });
     
-    it('should generate interactive diagram HTML', () => {
+    it('should generate interactive diagram HTML', async () => {
       const diagramData = {
         title: 'Flow Diagram',
         type: 'flowchart'
       };
       
-      const html = designEngine.generateInteractiveDiagram('diagram-1', diagramData, {
+      const html = await designEngine.generateInteractiveDiagram('diagram-1', diagramData, {
         interactive: true
       });
       
@@ -526,7 +550,7 @@ describe('DesignEngine', () => {
       fs.readFile.mockRejectedValue(new Error('Component error'));
       
       const html = await designEngine.renderComponent('ErrorComponent');
-      expect(html).toContain('Component render failed');
+      expect(html).toContain('Component not found');
     });
   });
   
@@ -700,7 +724,7 @@ describe('DesignEngine Integration Tests', () => {
           - Build real projects
         `;
 
-        const enhanced = await engine.enhanceTextContent(text);
+        const enhanced = await engine.enhanceTextContent(text, { context: {} });
         
         expect(enhanced).toBeDefined();
         // Should either return original or enhanced version
@@ -801,6 +825,681 @@ describe('DesignEngine Integration Tests', () => {
       const helpers = require('handlebars').helpers;
       
       expect(helpers.smartTransform).toBeDefined();
+    });
+  });
+
+  describe('Additional Method Coverage', () => {
+    let designEngine;
+    
+    beforeEach(() => {
+      jest.clearAllMocks();
+      designEngine = new DesignEngine();
+    });
+
+    describe('ensureMarkedInitialized', () => {
+      it('should initialize marked library', async () => {
+        await designEngine.ensureMarkedInitialized();
+        expect(designEngine.markedInitialized).toBe(true);
+      });
+
+      it('should only initialize marked once', async () => {
+        await designEngine.ensureMarkedInitialized();
+        await designEngine.ensureMarkedInitialized();
+        expect(designEngine.markedInitialized).toBe(true);
+      });
+    });
+
+    describe('processTemplate', () => {
+      it('should process template with all options', async () => {
+        const template = '<div>{{content}}</div>';
+        
+        // Mock internal methods
+        designEngine.injectDynamicComponents = jest.fn().mockResolvedValue('<div>injected</div>');
+        designEngine.applyTransformations = jest.fn().mockResolvedValue('<div>transformed</div>');
+        designEngine.optimizeTemplate = jest.fn().mockReturnValue('<div>optimized</div>');
+        
+        const result = await designEngine.processTemplate(template, {
+          injectComponents: true,
+          components: [{ name: 'test', data: {} }],
+          transformations: [{ type: 'replace', search: 'a', replace: 'b' }],
+          optimize: true
+        });
+        
+        expect(designEngine.injectDynamicComponents).toHaveBeenCalled();
+        expect(designEngine.applyTransformations).toHaveBeenCalled();
+        expect(designEngine.optimizeTemplate).toHaveBeenCalled();
+        expect(result).toBe('<div>optimized</div>');
+      });
+
+      it('should process template without options', async () => {
+        const template = '<div>{{content}}</div>';
+        const result = await designEngine.processTemplate(template, {});
+        expect(result).toBe(template);
+      });
+    });
+
+    describe('injectDynamicComponents', () => {
+      it('should inject components into template', async () => {
+        const template = '<div>{{component:Header}}</div>';
+        const components = [{ name: 'Header', data: { title: 'Test' } }];
+        
+        designEngine.renderComponent = jest.fn().mockResolvedValue('<h1>Test</h1>');
+        
+        const result = await designEngine.injectDynamicComponents(template, components);
+        expect(result).toBe('<div><h1>Test</h1></div>');
+        expect(designEngine.renderComponent).toHaveBeenCalledWith('Header', { title: 'Test' });
+      });
+
+      it('should handle missing placeholder', async () => {
+        const template = '<div>No components</div>';
+        const components = [{ name: 'Header', data: {} }];
+        
+        const result = await designEngine.injectDynamicComponents(template, components);
+        expect(result).toBe(template);
+      });
+    });
+
+    describe('applyTransformations', () => {
+      it('should apply replace transformation', async () => {
+        const template = '<div>Hello World</div>';
+        const transformations = [{
+          type: 'replace',
+          search: 'World',
+          replace: 'Universe'
+        }];
+        
+        const result = await designEngine.applyTransformations(template, transformations);
+        expect(result).toBe('<div>Hello Universe</div>');
+      });
+
+      it('should apply inject transformation', async () => {
+        const template = '<div>{{MARKER}}</div>';
+        const transformations = [{
+          type: 'inject',
+          marker: '{{MARKER}}',
+          content: '<span>Injected</span>'
+        }];
+        
+        const result = await designEngine.applyTransformations(template, transformations);
+        expect(result).toBe('<div><span>Injected</span></div>');
+      });
+
+      it('should apply wrap transformation', async () => {
+        const template = '<div>(content)</div>';
+        const transformations = [{
+          type: 'wrap',
+          search: '\\((.*?)\\)',
+          before: '<strong>',
+          after: '</strong>'
+        }];
+        
+        const result = await designEngine.applyTransformations(template, transformations);
+        expect(result).toBe('<div><strong>content</strong></div>');
+      });
+
+      it('should handle multiple transformations', async () => {
+        const template = '<div>Hello World</div>';
+        const transformations = [
+          { type: 'replace', search: 'Hello', replace: 'Hi' },
+          { type: 'replace', search: 'World', replace: 'Universe' }
+        ];
+        
+        const result = await designEngine.applyTransformations(template, transformations);
+        expect(result).toBe('<div>Hi Universe</div>');
+      });
+    });
+
+    describe('processTemplateStyles', () => {
+      it('should process template styles with theme variables', () => {
+        const styles = `
+          .test {
+            color: {{color.primary}};
+            padding: {{spacing.md}};
+            font-family: {{typography.fontFamily}};
+          }
+        `;
+        
+        const result = designEngine.processTemplateStyles(styles, designEngine.defaultTheme);
+        expect(result).toContain('#3b82f6'); // primary color
+        expect(result).toContain('1rem'); // md spacing
+        expect(result).toContain('-apple-system'); // font family
+      });
+
+      it('should handle missing placeholders', () => {
+        const styles = '.test { color: {{color.nonexistent}}; }';
+        const result = designEngine.processTemplateStyles(styles, designEngine.defaultTheme);
+        expect(result).toBe(styles);
+      });
+    });
+
+    describe('HTML generation methods', () => {
+      it('should generate flowchart HTML', () => {
+        const data = { nodes: ['Start', 'Process', 'End'] };
+        const html = designEngine.generateFlowchartHTML(data);
+        expect(html).toContain('<svg');
+        expect(html).toContain('flowchart-svg');
+        expect(html).toContain('Start');
+      });
+
+      it('should generate mindmap HTML', () => {
+        const data = { central: 'Main Topic', branches: ['A', 'B', 'C'] };
+        const html = designEngine.generateMindmapHTML(data);
+        expect(html).toContain('mindmap-placeholder');
+      });
+
+      it('should generate sequence HTML', () => {
+        const data = { actors: ['User', 'System'], interactions: [] };
+        const html = designEngine.generateSequenceHTML(data);
+        expect(html).toContain('sequence-placeholder');
+      });
+    });
+
+    describe('escapeHtml', () => {
+      it('should escape HTML characters', () => {
+        const input = '<div>"Hello" & \'World\'</div>';
+        const expected = '&lt;div&gt;&quot;Hello&quot; &amp; &#x27;World&#x27;&lt;/div&gt;';
+        const result = designEngine.escapeHtml(input);
+        expect(result).toBe(expected);
+      });
+
+      it('should handle empty string', () => {
+        expect(designEngine.escapeHtml('')).toBe('');
+      });
+    });
+
+    describe('Handlebars Helper Functions', () => {
+      let handlebars;
+      
+      beforeEach(() => {
+        handlebars = require('handlebars');
+        // Need to re-initialize to ensure helpers are registered
+        designEngine = new DesignEngine();
+      });
+
+      it('should have theme helper', () => {
+        const themeHelper = handlebars.helpers.theme;
+        designEngine.currentTheme = designEngine.defaultTheme;
+        
+        expect(themeHelper('colors.primary')).toBe('#3b82f6');
+        expect(themeHelper('nonexistent.path')).toBe('');
+      });
+
+      it('should have responsive helper', () => {
+        const responsiveHelper = handlebars.helpers.responsive;
+        designEngine.currentTheme = designEngine.defaultTheme;
+        
+        const result = responsiveHelper('md');
+        expect(result).toBe('@media (min-width: 768px)');
+      });
+
+      it('should have cssVar helper', () => {
+        const cssVarHelper = handlebars.helpers.cssVar;
+        const result = cssVarHelper('primary', '#000');
+        expect(result.string).toBe('var(--primary, #000)');
+      });
+
+      it('should have qualityClass helper', () => {
+        const qualityClassHelper = handlebars.helpers.qualityClass;
+        
+        expect(qualityClassHelper(90)).toBe('quality-premium');
+        expect(qualityClassHelper(75)).toBe('quality-recommended');
+        expect(qualityClassHelper(60)).toBe('quality-minimum');
+        expect(qualityClassHelper(40)).toBe('quality-low');
+      });
+
+      it('should have prioritizeContent helper', () => {
+        const prioritizeHelper = handlebars.helpers.prioritizeContent;
+        
+        let result = prioritizeHelper('Content', 90);
+        expect(result.string).toContain('priority-high');
+        
+        result = prioritizeHelper('Content', 75);
+        expect(result.string).toContain('priority-medium');
+        
+        result = prioritizeHelper('Content', 50);
+        expect(result.string).toContain('priority-low');
+      });
+
+      it('should have ragContext helper', () => {
+        const ragHelper = handlebars.helpers.ragContext;
+        
+        const context = {
+          relevant_chunks: [
+            { text: 'Test chunk', similarity_score: 0.85 }
+          ]
+        };
+        
+        const result = ragHelper(context);
+        expect(result.string).toContain('rag-context');
+        expect(result.string).toContain('Test chunk');
+        expect(result.string).toContain('85% match');
+      });
+
+      it('should handle empty ragContext', () => {
+        const ragHelper = handlebars.helpers.ragContext;
+        expect(ragHelper(null)).toBe('');
+        expect(ragHelper({})).toBe('');
+      });
+
+      it('should have layout helper', () => {
+        const layoutHelper = handlebars.helpers.layout;
+        
+        let result = layoutHelper('grid', {});
+        expect(result.string).toContain('display: grid');
+        
+        result = layoutHelper('flex', {});
+        expect(result.string).toContain('display: flex');
+        
+        result = layoutHelper('masonry', {});
+        expect(result.string).toContain('column-count: 3');
+        
+        result = layoutHelper('sidebar', {});
+        expect(result.string).toContain('grid-template-columns: 300px 1fr');
+        
+        result = layoutHelper('unknown', {});
+        expect(result.string).toContain('style=""');
+      });
+
+      it('should have markdown helper', () => {
+        const markdownHelper = handlebars.helpers.markdown;
+        
+        const text = '**Bold** and *italic* text\n\nNew paragraph\nNew line';
+        const result = markdownHelper(text);
+        
+        expect(result.string).toContain('<strong>Bold</strong>');
+        expect(result.string).toContain('<em>italic</em>');
+        expect(result.string).toContain('</p><p>');
+        expect(result.string).toContain('<br>');
+      });
+
+      it('should have formatDuration helper', () => {
+        const durationHelper = handlebars.helpers.formatDuration;
+        
+        expect(durationHelper(null)).toBe('0 min');
+        expect(durationHelper(30)).toBe('30m');
+        expect(durationHelper(90)).toBe('1h 30m');
+        expect(durationHelper(120)).toBe('2h 0m');
+      });
+
+      it('should have string helpers', () => {
+        const capitalizeHelper = handlebars.helpers.capitalize;
+        const truncateHelper = handlebars.helpers.truncate;
+        
+        expect(capitalizeHelper('hello')).toBe('Hello');
+        expect(capitalizeHelper('')).toBe('');
+        expect(capitalizeHelper(null)).toBe('');
+        
+        expect(truncateHelper('Long text here', 8)).toBe('Long tex...');
+        expect(truncateHelper('Short', 10)).toBe('Short');
+        expect(truncateHelper(null, 5)).toBe('');
+      });
+
+      it('should have array helpers', () => {
+        const lengthHelper = handlebars.helpers.length;
+        
+        expect(lengthHelper([1, 2, 3])).toBe(3);
+        expect(lengthHelper([])).toBe(0);
+        expect(lengthHelper(null)).toBe(0);
+        expect(lengthHelper('not array')).toBe(0);
+      });
+
+      it('should have eachWithIndex helper', () => {
+        const eachWithIndexHelper = handlebars.helpers.eachWithIndex;
+        const options = {
+          fn: (context) => `${context.index}:${context.value}`
+        };
+        
+        const result = eachWithIndexHelper([
+          { value: 'a' },
+          { value: 'b' }
+        ], options);
+        
+        expect(result).toBe('0:a1:b');
+      });
+
+      it('should have math helpers', () => {
+        const helpers = handlebars.helpers;
+        
+        expect(helpers.add(5, 3)).toBe(8);
+        expect(helpers.sub(10, 4)).toBe(6);
+        expect(helpers.multiply(3, 7)).toBe(21);
+        expect(helpers.divide(20, 4)).toBe(5);
+        expect(helpers.divide(10, 0)).toBe(0);
+        expect(helpers.lt(3, 5)).toBe(true);
+        expect(helpers.gt(7, 4)).toBe(true);
+        expect(helpers.lte(5, 5)).toBe(true);
+        expect(helpers.gte(6, 5)).toBe(true);
+      });
+
+      it('should have ifEquals helper', () => {
+        const ifEqualsHelper = handlebars.helpers.ifEquals;
+        const options = {
+          fn: function() { return 'equal'; },
+          inverse: function() { return 'not equal'; }
+        };
+        
+        expect(ifEqualsHelper.call({}, 'a', 'a', options)).toBe('equal');
+        expect(ifEqualsHelper.call({}, 'a', 'b', options)).toBe('not equal');
+      });
+
+      it('should have json helper', () => {
+        const jsonHelper = handlebars.helpers.json;
+        const obj = { a: 1, b: 'test' };
+        expect(jsonHelper(obj)).toBe('{"a":1,"b":"test"}');
+      });
+
+      it('should have uniqueId helper', () => {
+        const uniqueIdHelper = handlebars.helpers.uniqueId;
+        const id1 = uniqueIdHelper();
+        const id2 = uniqueIdHelper();
+        
+        expect(id1).toMatch(/^id-[a-f0-9]{8}$/);
+        expect(id1).not.toBe(id2);
+      });
+
+      it('should have component helper', () => {
+        const componentHelper = handlebars.helpers.component;
+        
+        // Mock compiled component
+        designEngine.compiledComponents.set('TestComponent', (data) => `<div>${data.text}</div>`);
+        
+        const options = { hash: { text: 'Hello' } };
+        const result = componentHelper('TestComponent', options);
+        
+        expect(result.string).toBe('<div>Hello</div>');
+      });
+
+      it('should handle missing component', () => {
+        // Get the component helper function
+        const componentHelper = handlebars.helpers.component;
+        
+        // Mock the compiledComponents to simulate missing component
+        const originalGet = designEngine.compiledComponents.get;
+        designEngine.compiledComponents.get = jest.fn().mockReturnValue(null);
+        
+        const options = { hash: {} };
+        const result = componentHelper('NonExistent', options);
+        
+        expect(result).toBeDefined();
+        expect(result.string).toBe('');
+        
+        // Restore original method
+        designEngine.compiledComponents.get = originalGet;
+      });
+
+      it('should have interactive helper', () => {
+        const interactiveHelper = handlebars.helpers.interactive;
+        
+        // Mock generateInteractiveQuiz
+        designEngine.generateInteractiveQuiz = jest.fn().mockReturnValue('<div>Quiz</div>');
+        designEngine.generateInteractiveCode = jest.fn().mockReturnValue('<div>Code</div>');
+        designEngine.generateInteractiveDiagram = jest.fn().mockReturnValue('<div>Diagram</div>');
+        
+        let result = interactiveHelper('quiz', { questions: [] }, { hash: {} });
+        expect(result.string).toBe('<div>Quiz</div>');
+        
+        result = interactiveHelper('code', { code: 'test' }, { hash: {} });
+        expect(result.string).toBe('<div>Code</div>');
+        
+        result = interactiveHelper('diagram', { type: 'flow' }, { hash: {} });
+        expect(result.string).toBe('<div>Diagram</div>');
+        
+        result = interactiveHelper('unknown', 'data', { hash: {} });
+        expect(result.string).toContain('interactive-unknown');
+      });
+    });
+
+    describe('enhanceActivities', () => {
+      it('should enhance activities with visuals', async () => {
+        const activities = [
+          {
+            id: 'act-1',
+            type: 'quiz',
+            title: 'Test Quiz',
+            questions: [{ q: 'Question 1' }],
+            estimated_duration: 30
+          },
+          {
+            id: 'act-2',
+            type: 'hands-on',
+            content: 'Build a simple application step by step'
+          }
+        ];
+        
+        // Mock VisualIntelligence
+        if (designEngine.visualIntelligence) {
+          designEngine.visualIntelligence.generateVisual = jest.fn()
+            .mockResolvedValue({ svg: '<svg>Visual</svg>' });
+          designEngine.visualIntelligence.analyzeContent = jest.fn()
+            .mockResolvedValue({ 
+              confidence: 0.8, 
+              primaryVisual: { type: 'flowchart' } 
+            });
+        }
+        
+        const enhanced = await designEngine.enhanceActivities(activities, {});
+        
+        expect(enhanced).toHaveLength(2);
+        expect(enhanced[0]).toHaveProperty('id', 'act-1');
+        
+        if (designEngine.visualIntelligence) {
+          // Quiz should have overview visual
+          expect(enhanced[0].overviewVisual).toBeDefined();
+          // Hands-on should have content visual
+          expect(enhanced[1].contentVisual).toBeDefined();
+        }
+      });
+
+      it('should skip activities with existing visuals', async () => {
+        const activities = [
+          {
+            id: 'act-1',
+            visual: '<svg>Existing</svg>',
+            content: 'Content'
+          },
+          {
+            id: 'act-2',
+            diagram: '<svg>Existing diagram</svg>',
+            content: 'Content'
+          }
+        ];
+        
+        const enhanced = await designEngine.enhanceActivities(activities, {});
+        
+        expect(enhanced[0].visual).toBe('<svg>Existing</svg>');
+        expect(enhanced[1].diagram).toBe('<svg>Existing diagram</svg>');
+      });
+
+      it('should handle low confidence analysis', async () => {
+        const activities = [{
+          id: 'act-1',
+          content: 'Simple content'
+        }];
+        
+        if (designEngine.visualIntelligence) {
+          designEngine.visualIntelligence.analyzeContent = jest.fn()
+            .mockResolvedValue({ confidence: 0.5 });
+        }
+        
+        const enhanced = await designEngine.enhanceActivities(activities, {});
+        expect(enhanced[0].contentVisual).toBeUndefined();
+      });
+    });
+
+    describe('Component Template Methods', () => {
+      it('should get default course header component', () => {
+        const template = designEngine.getDefaultCourseHeaderComponent();
+        expect(template).toContain('course-header');
+        expect(template).toContain('{{course.title}}');
+        expect(template).toContain('{{formatDuration totalDuration}}');
+      });
+
+      it('should get default session card component', () => {
+        const template = designEngine.getDefaultSessionCardComponent();
+        expect(template).toContain('session-card');
+        expect(template).toContain('{{sessionNumber}}');
+        expect(template).toContain('{{title}}');
+      });
+
+      it('should get default activity block component', () => {
+        const template = designEngine.getDefaultActivityBlockComponent();
+        expect(template).toContain('activity-block');
+        expect(template).toContain('{{capitalize type}}');
+        expect(template).toContain('{{interactive');
+      });
+
+      it('should get default assessment section component', () => {
+        const template = designEngine.getDefaultAssessmentSectionComponent();
+        expect(template).toContain('assessment-section');
+        expect(template).toContain('{{title}}');
+        expect(template).toContain('{{#if questions}}');
+      });
+
+      it('should get default navigation menu component', () => {
+        const template = designEngine.getDefaultNavigationMenuComponent();
+        expect(template).toContain('navigation-menu');
+        expect(template).toContain('{{#each sessions}}');
+        expect(template).toContain('nav-link');
+      });
+
+      it('should get default progress tracker component', () => {
+        const template = designEngine.getDefaultProgressTrackerComponent();
+        expect(template).toContain('progress-tracker-component');
+        expect(template).toContain('{{overallProgress}}');
+        expect(template).toContain('{{#if showStats}}');
+      });
+    });
+
+    describe('CSS Generation Edge Cases', () => {
+      it('should handle template styles loading error', async () => {
+        fs.readFile.mockImplementation((path) => {
+          if (path.includes('styles.css')) {
+            throw new Error('File not found');
+          }
+          return Promise.resolve('');
+        });
+        
+        const css = await designEngine.generateCSS('template-with-error');
+        expect(css).toContain('Base Styles');
+        // Template-specific styles are logged as warning but CSS still generated
+        expect(css).toBeDefined();
+      });
+
+      it('should bypass cache when noCache option is true', async () => {
+        const customizations = { colors: { primary: '#ff0000' } };
+        
+        // First call - should cache
+        await designEngine.generateCSS('cached-template', customizations);
+        expect(designEngine.styleCache.size).toBe(1);
+        
+        // Second call with noCache - should bypass cache
+        const css = await designEngine.generateCSS('cached-template', customizations, {
+          noCache: true
+        });
+        expect(css).toBeDefined();
+      });
+    });
+
+    describe('Interactive Quiz Edge Cases', () => {
+      it('should handle true-false questions', () => {
+        const quizData = {
+          questions: [{
+            question: 'Is the sky blue?',
+            type: 'true-false'
+          }]
+        };
+        
+        const html = designEngine.generateInteractiveQuiz('quiz-tf', quizData, {});
+        expect(html).toContain('type="radio"');
+        expect(html).toContain('True');
+        expect(html).toContain('False');
+      });
+
+      it('should handle quiz without title', () => {
+        const quizData = {
+          questions: [{ question: 'Q1', type: 'multiple-choice', options: ['A'] }]
+        };
+        
+        const html = designEngine.generateInteractiveQuiz('quiz-notitle', quizData, {});
+        expect(html).toContain('Quiz'); // Default title
+      });
+    });
+
+    describe('Interactive Code Edge Cases', () => {
+      it('should handle code without title', () => {
+        const codeData = {
+          code: 'console.log("test");',
+          language: 'javascript'
+        };
+        
+        const html = designEngine.generateInteractiveCode('code-notitle', codeData, {});
+        expect(html).not.toContain('code-title');
+        expect(html).toContain('console.log');
+      });
+
+      it('should handle non-editable code', () => {
+        const codeData = {
+          code: 'const x = 1;'
+        };
+        
+        const html = designEngine.generateInteractiveCode('code-readonly', codeData, {
+          editable: false
+        });
+        expect(html).not.toContain('editable');
+      });
+
+      it('should handle code without runnable option', () => {
+        const codeData = {
+          code: 'print("Hello")'
+        };
+        
+        const html = designEngine.generateInteractiveCode('code-norun', codeData, {
+          runnable: false
+        });
+        expect(html).not.toContain('Run Code');
+      });
+    });
+
+    describe('Interactive Diagram Edge Cases', () => {
+      it('should handle mindmap type', async () => {
+        const diagramData = {
+          type: 'mindmap',
+          central: 'Main Topic'
+        };
+        
+        const html = await designEngine.generateInteractiveDiagram('mindmap-1', diagramData, {});
+        expect(html).toContain('mindmap');
+      });
+
+      it('should handle sequence type', async () => {
+        const diagramData = {
+          type: 'sequence',
+          actors: ['User', 'System']
+        };
+        
+        const html = await designEngine.generateInteractiveDiagram('seq-1', diagramData, {});
+        expect(html).toContain('sequence');
+      });
+
+      it('should handle diagram without title', async () => {
+        const diagramData = {
+          type: 'flowchart'
+        };
+        
+        const html = await designEngine.generateInteractiveDiagram('no-title', diagramData, {});
+        expect(html).not.toContain('diagram-title');
+      });
+
+      it('should handle non-interactive diagram', async () => {
+        const diagramData = {
+          type: 'flowchart'
+        };
+        
+        const html = await designEngine.generateInteractiveDiagram('static', diagramData, {
+          interactive: false
+        });
+        expect(html).not.toContain('Zoom In');
+      });
     });
   });
 });

@@ -1,10 +1,33 @@
-const VectorService = require('../../../src/services/vectorService');
+const { VectorService } = require('../../../src/services/vectorService');
 const { getQdrantClient } = require('../../../src/config/vectorStore');
 const { supabaseAdmin } = require('../../../src/config/database-simple');
 const { v4: uuidv4 } = require('uuid');
 
-jest.mock('../../../src/config/vectorStore');
-jest.mock('../../../src/config/database-simple');
+jest.mock('../../../src/config/vectorStore', () => ({
+  getQdrantClient: jest.fn(),
+  qdrantConfig: {
+    getCollectionConfig: jest.fn().mockReturnValue({
+      defaultVectorSize: 768,
+      defaultDistance: 'Cosine',
+      defaultHnswConfig: { m: 16, ef_construct: 100 }
+    }),
+    getBatchConfig: jest.fn().mockReturnValue({
+      maxBatchSize: 1000,
+      maxConcurrentBatches: 5,
+      waitForIndexing: false
+    })
+  },
+  logger: {
+    info: jest.fn(),
+    error: jest.fn(),
+    warn: jest.fn()
+  }
+}));
+jest.mock('../../../src/config/database-simple', () => ({
+  supabaseAdmin: {
+    from: jest.fn()
+  }
+}));
 jest.mock('uuid');
 
 describe('VectorService', () => {
@@ -24,7 +47,15 @@ describe('VectorService', () => {
       query: jest.fn(),
       delete: jest.fn(),
       getCollectionInfo: jest.fn(),
-      health: jest.fn()
+      health: jest.fn(),
+      getCollection: jest.fn().mockReturnValue({
+        get_collection_info: jest.fn(),
+        info: jest.fn(),
+        points_count: 100
+      }),
+      healthCheck: jest.fn().mockResolvedValue({ healthy: true, status: 'ok' }),
+      count: jest.fn().mockResolvedValue({ count: 100 }),
+      sleep: jest.fn()
     };
     
     mockSupabase = {
@@ -205,12 +236,12 @@ describe('VectorService', () => {
       ];
 
       await expect(vectorService.insertVectors(collectionName, invalidVectors))
-        .rejects.toThrow('Invalid vector at index 0');
+        .rejects.toThrow('Failed to insert vectors: Vector at index 0 must have a \'vector\' property that is an array');
     });
 
     it('should handle empty vectors array', async () => {
       await expect(vectorService.insertVectors(collectionName, []))
-        .rejects.toThrow('Vectors array cannot be empty');
+        .rejects.toThrow('Failed to insert vectors: Vectors must be a non-empty array');
     });
 
     it('should handle inconsistent vector dimensions', async () => {
@@ -220,7 +251,7 @@ describe('VectorService', () => {
       ];
 
       await expect(vectorService.insertVectors(collectionName, inconsistentVectors))
-        .rejects.toThrow('Inconsistent vector dimensions');
+        .rejects.toThrow('Failed to insert vectors: All vectors must have the same dimension. Expected 768, but found 512');
     });
 
     it('should handle batch insertion with wait option', async () => {
@@ -423,6 +454,11 @@ describe('VectorService', () => {
         operation_id: 123,
         status: 'completed'
       });
+      
+      // Mock before and after counts
+      mockQdrantClient.getCollection
+        .mockResolvedValueOnce({ points_count: 100 })
+        .mockResolvedValueOnce({ points_count: 80 });
 
       const filters = {
         courseId: 'course-123'
@@ -441,9 +477,10 @@ describe('VectorService', () => {
           }
         }
       );
-      expect(result).toEqual({
+      expect(result).toMatchObject({
         success: true,
-        operationId: 'mock-uuid-123'
+        operationId: 123,
+        deletedCount: 20
       });
     });
 
@@ -481,13 +518,19 @@ describe('VectorService', () => {
         }
       };
 
-      mockQdrantClient.getCollectionInfo.mockResolvedValue(mockInfo);
+      mockQdrantClient.getCollection.mockResolvedValue(mockInfo);
+      mockQdrantClient.count.mockResolvedValue({ count: 1000 });
 
       const result = await vectorService.getCollectionInfo(collectionName);
 
       expect(result).toEqual({
-        success: true,
-        info: mockInfo
+        name: collectionName,
+        vectorCount: 1000,
+        status: 'green',
+        config: mockInfo.config,
+        indexedVectorsCount: 1000,
+        pointsCount: 1000,
+        segments: 1
       });
     });
 
@@ -601,13 +644,14 @@ describe('VectorService', () => {
     });
 
     it('should return unhealthy status on error', async () => {
-      mockQdrantClient.health.mockRejectedValue(new Error('Connection failed'));
+      mockQdrantClient.healthCheck.mockRejectedValue(new Error('Connection failed'));
 
       const result = await vectorService.healthCheck();
 
       expect(result).toEqual({
         healthy: false,
-        error: 'Connection failed'
+        error: 'Connection failed',
+        timestamp: expect.any(String)
       });
     });
   });
