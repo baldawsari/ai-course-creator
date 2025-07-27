@@ -106,6 +106,9 @@ afterEach(() => {
   jest.clearAllTimers()
 })
 
+// Mock use-toast hook
+jest.mock('@/hooks/use-toast', () => require('@/__mocks__/hooks/use-toast'))
+
 // Mock Next.js router
 jest.mock('next/navigation', () => ({
   useRouter: () => ({
