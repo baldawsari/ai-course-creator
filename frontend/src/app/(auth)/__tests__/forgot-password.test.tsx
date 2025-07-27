@@ -77,7 +77,7 @@ describe('Forgot Password Page', () => {
       render(<ForgotPasswordPage />)
       
       server.use(
-        http.post('http://localhost:3001/api/auth/forgot-password', async () => {
+        http.post('http://localhost:3001/auth/forgot-password', async () => {
           return HttpResponse.json({
             message: 'Password reset instructions sent to your email'
           }, { status: 200 })
@@ -99,7 +99,7 @@ describe('Forgot Password Page', () => {
       render(<ForgotPasswordPage />)
       
       server.use(
-        http.post('http://localhost:3001/api/auth/forgot-password', async () => {
+        http.post('http://localhost:3001/auth/forgot-password', async () => {
           await new Promise(resolve => setTimeout(resolve, 100))
           return HttpResponse.json({
             message: 'Password reset instructions sent'
@@ -125,7 +125,7 @@ describe('Forgot Password Page', () => {
       render(<ForgotPasswordPage />)
       
       server.use(
-        http.post('http://localhost:3001/api/auth/forgot-password', async () => {
+        http.post('http://localhost:3001/auth/forgot-password', async () => {
           return HttpResponse.json({
             message: 'Email not found'
           }, { status: 404 })
@@ -145,7 +145,7 @@ describe('Forgot Password Page', () => {
       render(<ForgotPasswordPage />)
       
       server.use(
-        http.post('http://localhost:3001/api/auth/forgot-password', async () => {
+        http.post('http://localhost:3001/auth/forgot-password', async () => {
           return HttpResponse.error()
         })
       )
@@ -192,7 +192,7 @@ describe('Forgot Password Page', () => {
       render(<ForgotPasswordPage />)
       
       server.use(
-        http.post('http://localhost:3001/api/auth/forgot-password', async () => {
+        http.post('http://localhost:3001/auth/forgot-password', async () => {
           return HttpResponse.json({
             message: 'Success'
           }, { status: 200 })
@@ -215,7 +215,7 @@ describe('Forgot Password Page', () => {
       render(<ForgotPasswordPage />)
       
       server.use(
-        http.post('http://localhost:3001/api/auth/forgot-password', async () => {
+        http.post('http://localhost:3001/auth/forgot-password', async () => {
           return HttpResponse.json({ message: 'Success' }, { status: 200 })
         })
       )
@@ -235,7 +235,7 @@ describe('Forgot Password Page', () => {
       render(<ForgotPasswordPage />)
       
       server.use(
-        http.post('http://localhost:3001/api/auth/forgot-password', async () => {
+        http.post('http://localhost:3001/auth/forgot-password', async () => {
           return HttpResponse.json({ message: 'Success' }, { status: 200 })
         })
       )
@@ -260,7 +260,7 @@ describe('Forgot Password Page', () => {
       render(<ForgotPasswordPage />)
       
       server.use(
-        http.post('http://localhost:3001/api/auth/forgot-password', async () => {
+        http.post('http://localhost:3001/auth/forgot-password', async () => {
           return HttpResponse.json({ message: 'Success' }, { status: 200 })
         })
       )
@@ -292,7 +292,7 @@ describe('Forgot Password Page', () => {
       render(<ForgotPasswordPage />)
       
       server.use(
-        http.post('http://localhost:3001/api/auth/forgot-password', async () => {
+        http.post('http://localhost:3001/auth/forgot-password', async () => {
           return HttpResponse.json({ message: 'Success' }, { status: 200 })
         })
       )
@@ -345,7 +345,7 @@ describe('Forgot Password Page', () => {
       render(<ForgotPasswordPage />)
       
       server.use(
-        http.post('http://localhost:3001/api/auth/forgot-password', async () => {
+        http.post('http://localhost:3001/auth/forgot-password', async () => {
           return HttpResponse.json({ message: 'Success' }, { status: 200 })
         })
       )
@@ -374,7 +374,7 @@ describe('Forgot Password Page', () => {
       render(<ForgotPasswordPage />)
       
       server.use(
-        http.post('http://localhost:3001/api/auth/forgot-password', async () => {
+        http.post('http://localhost:3001/auth/forgot-password', async () => {
           return HttpResponse.json({ message: 'Success' }, { status: 200 })
         })
       )

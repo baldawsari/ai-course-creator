@@ -7,7 +7,6 @@ import RegisterPage from '../register/page'
 import { useRouter } from 'next/navigation'
 
 const mockPush = jest.fn()
-const mockLogin = jest.fn()
 
 // Get the router mock from the setup
 const mockRouter = {
@@ -27,8 +26,10 @@ describe('Register Page', () => {
     // Reset all mocks
     jest.clearAllMocks()
     
-    // Update the mock auth store login function
-    mockAuthStore.login = mockLogin
+    // Reset the mock auth store
+    mockAuthStore.login.mockClear()
+    mockAuthStore.user = null
+    mockAuthStore.isAuthenticated = false
   })
 
   afterEach(() => {
@@ -320,7 +321,7 @@ describe('Register Page', () => {
       
       // Mock successful registration
       server.use(
-        http.post('http://localhost:3001/api/auth/register', async () => {
+        http.post('http://localhost:3001/auth/register', async () => {
           return HttpResponse.json({
             user: { id: '2', name: 'John Doe', email: 'john@example.com' },
             token: 'mock-jwt-token',
@@ -343,7 +344,7 @@ describe('Register Page', () => {
       await user.click(screen.getByTestId('complete-registration-button'))
       
       await waitFor(() => {
-        expect(mockLogin).toHaveBeenCalledWith(
+        expect(mockAuthStore.login).toHaveBeenCalledWith(
           { id: '2', name: 'John Doe', email: 'john@example.com' },
           'mock-jwt-token'
         )
@@ -357,7 +358,7 @@ describe('Register Page', () => {
       
       // Mock failed registration
       server.use(
-        http.post('http://localhost:3001/api/auth/register', async () => {
+        http.post('http://localhost:3001/auth/register', async () => {
           return HttpResponse.json({
             message: 'Email already exists'
           }, { status: 400 })
@@ -390,7 +391,7 @@ describe('Register Page', () => {
       
       // Mock delayed registration response
       server.use(
-        http.post('http://localhost:3001/api/auth/register', async () => {
+        http.post('http://localhost:3001/auth/register', async () => {
           await new Promise(resolve => setTimeout(resolve, 100))
           return HttpResponse.json({
             user: { id: '2', name: 'John Doe', email: 'john@example.com' },
@@ -462,7 +463,7 @@ describe('Register Page', () => {
       
       // Mock network error
       server.use(
-        http.post('http://localhost:3001/api/auth/register', async () => {
+        http.post('http://localhost:3001/auth/register', async () => {
           return HttpResponse.error()
         })
       )

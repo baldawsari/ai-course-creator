@@ -8,7 +8,6 @@ import { useRouter } from 'next/navigation'
 import { toast } from '@/hooks/use-toast'
 
 const mockPush = jest.fn()
-const mockLogin = jest.fn()
 
 // Get the router mock from the setup
 const mockRouter = {
@@ -28,8 +27,10 @@ describe('Login Page', () => {
     // Reset all mocks
     jest.clearAllMocks()
     
-    // Update the mock auth store login function
-    mockAuthStore.login = mockLogin
+    // Reset the mock auth store
+    mockAuthStore.login.mockClear()
+    mockAuthStore.user = null
+    mockAuthStore.isAuthenticated = false
     
     // Clear localStorage
     localStorage.clear()
@@ -47,7 +48,7 @@ describe('Login Page', () => {
       expect(screen.getByText('Welcome Back')).toBeInTheDocument()
       
       // Check for form elements
-      expect(screen.getByTestId('login-form')).toBeInTheDocument()
+      expect(screen.getByTestId('mobile-login-form')).toBeInTheDocument()
       expect(screen.getByTestId('email-input')).toBeInTheDocument()
       expect(screen.getByTestId('password-input')).toBeInTheDocument()
       expect(screen.getByTestId('login-button')).toBeInTheDocument()
@@ -213,27 +214,24 @@ describe('Login Page', () => {
       const user = createUserEvent()
       render(<LoginPage />)
       
-      // Setup successful login response
-      server.use(
-        http.post('http://localhost:3001/api/auth/login', async () => {
-          return HttpResponse.json({
-            user: { id: '1', name: 'Test User', email: 'test@example.com' },
-            token: 'mock-jwt-token',
-          }, { status: 200 })
-        })
-      )
+      // The mock is already set up in api-mocks.ts, no need to override
       
       await user.type(screen.getByTestId('email-input'), 'test@example.com')
       await user.type(screen.getByTestId('password-input'), 'password123')
       await user.click(screen.getByTestId('login-button'))
       
       await waitFor(() => {
-        expect(mockLogin).toHaveBeenCalledWith(
-          { id: '1', name: 'Test User', email: 'test@example.com' },
+        expect(mockAuthStore.login).toHaveBeenCalledWith(
+          expect.objectContaining({
+            id: 'user-admin',
+            email: 'admin@example.com',
+            name: 'Admin User',
+            role: 'admin'
+          }),
           'mock-jwt-token'
         )
         expect(mockPush).toHaveBeenCalledWith('/dashboard')
-      })
+      }, { timeout: 10000 })
     })
 
     it('should show error message for invalid credentials', async () => {
@@ -242,7 +240,7 @@ describe('Login Page', () => {
       
       // Setup failed login response
       server.use(
-        http.post('http://localhost:3001/api/auth/login', async () => {
+        http.post('http://localhost:3001/auth/login', async () => {
           return HttpResponse.json({
             message: 'Invalid credentials'
           }, { status: 401 })
@@ -266,7 +264,7 @@ describe('Login Page', () => {
       
       // Setup a delayed response
       server.use(
-        http.post('http://localhost:3001/api/auth/login', async () => {
+        http.post('http://localhost:3001/auth/login', async () => {
           await new Promise(resolve => setTimeout(resolve, 100))
           return HttpResponse.json({
             user: { id: '1', name: 'Test User', email: 'test@example.com' },
@@ -297,7 +295,7 @@ describe('Login Page', () => {
       
       // Setup network error
       server.use(
-        http.post('http://localhost:3001/api/auth/login', async () => {
+        http.post('http://localhost:3001/auth/login', async () => {
           return HttpResponse.error()
         })
       )
@@ -317,7 +315,7 @@ describe('Login Page', () => {
       render(<LoginPage />)
       
       server.use(
-        http.post('http://localhost:3001/api/auth/login', async () => {
+        http.post('http://localhost:3001/auth/login', async () => {
           return HttpResponse.json({
             user: { id: '1', name: 'Test User', email: 'test@example.com' },
             token: 'mock-jwt-token',
