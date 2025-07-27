@@ -243,6 +243,7 @@ export default function DashboardPage() {
   const [activities, setActivities] = useState(mockActivity)
   const [showUpgradeModal, setShowUpgradeModal] = useState(false)
   const [showNotificationDetails, setShowNotificationDetails] = useState(false)
+  const [showUploadModal, setShowUploadModal] = useState(false)
   const router = useRouter()
   const { user } = useAuthStore()
 
@@ -308,7 +309,7 @@ export default function DashboardPage() {
             <Button 
               variant="outline" 
               data-testid="quick-action-upload-document"
-              onClick={() => document.querySelector('[data-testid="upload-modal"]')?.classList.remove('hidden')}
+              onClick={() => setShowUploadModal(true)}
             >
               <Upload className="w-4 h-4 mr-2" />
               Import Content
