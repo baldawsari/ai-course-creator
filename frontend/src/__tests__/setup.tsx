@@ -3,6 +3,7 @@ import { configure } from '@testing-library/react'
 import { cleanup } from '@testing-library/react'
 import { afterEach, beforeAll, afterAll, jest } from '@jest/globals'
 import { TextEncoder, TextDecoder } from 'util'
+import { server } from './utils/api-mocks'
 
 // Polyfills for Node.js environment
 global.TextEncoder = TextEncoder
@@ -99,12 +100,19 @@ configure({
   asyncUtilTimeout: 5000,
 })
 
-// Cleanup after each test
+// Start MSW server
+beforeAll(() => server.listen({ onUnhandledRequest: 'warn' }))
+
+// Reset handlers after each test
 afterEach(() => {
   cleanup()
   jest.clearAllMocks()
   jest.clearAllTimers()
+  server.resetHandlers()
 })
+
+// Clean up after all tests
+afterAll(() => server.close())
 
 // Mock use-toast hook
 jest.mock('@/hooks/use-toast', () => require('@/__mocks__/hooks/use-toast'))

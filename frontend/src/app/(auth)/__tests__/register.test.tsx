@@ -1,38 +1,34 @@
 import React from 'react'
 import { describe, it, expect, jest, beforeEach, afterEach } from '@jest/globals'
-import { render, screen, waitFor, createUserEvent } from '@/__tests__/utils/test-utils'
+import { render, screen, waitFor, createUserEvent, mockAuthStore } from '@/__tests__/utils/test-utils'
 import { server } from '@/__tests__/utils/api-mocks'
 import { http, HttpResponse } from 'msw'
 import RegisterPage from '../register/page'
 import { useRouter } from 'next/navigation'
-import { useAuthStore } from '@/lib/store/auth-store'
-
-// Mock the modules
-jest.mock('next/navigation')
-jest.mock('@/lib/store/auth-store')
 
 const mockPush = jest.fn()
 const mockLogin = jest.fn()
+
+// Get the router mock from the setup
+const mockRouter = {
+  push: mockPush,
+  replace: jest.fn(),
+  prefetch: jest.fn(),
+  back: jest.fn(),
+  forward: jest.fn(),
+  refresh: jest.fn(),
+}
+
+// Override the useRouter mock for this test file
+;(useRouter as any).mockReturnValue = jest.fn().mockReturnValue(mockRouter)
 
 describe('Register Page', () => {
   beforeEach(() => {
     // Reset all mocks
     jest.clearAllMocks()
     
-    // Setup router mock
-    ;(useRouter as jest.Mock).mockReturnValue({
-      push: mockPush,
-      replace: jest.fn(),
-      prefetch: jest.fn(),
-      back: jest.fn(),
-    })
-    
-    // Setup auth store mock
-    ;(useAuthStore as unknown as jest.Mock).mockReturnValue({
-      login: mockLogin,
-      user: null,
-      isAuthenticated: false,
-    })
+    // Update the mock auth store login function
+    mockAuthStore.login = mockLogin
   })
 
   afterEach(() => {
