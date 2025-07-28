@@ -19,7 +19,8 @@ import {
   Share2,
   Star,
   Target,
-  Zap
+  Zap,
+  Mail
 } from 'lucide-react'
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
