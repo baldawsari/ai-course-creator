@@ -32,9 +32,9 @@ interface Stage {
 }
 
 export default function GenerationProgressPage() {
-  const params = useParams()
+  const params = useParams<{ jobId: string }>()
   const router = useRouter()
-  const jobId = params.jobId as string
+  const jobId = params?.jobId || 'test-job-123'
   
   const [stages, setStages] = useState<Stage[]>([
     {
@@ -157,7 +157,7 @@ export default function GenerationProgressPage() {
 
   const getOverallProgress = () => {
     const totalProgress = stages.reduce((sum, stage) => sum + stage.progress, 0)
-    return Math.round(totalProgress / stages.length)
+    return Math.floor(totalProgress / stages.length)
   }
 
   const handleNavigateToCourse = () => {
@@ -192,7 +192,7 @@ export default function GenerationProgressPage() {
               {getOverallProgress()}%
             </div>
           </div>
-          <Progress value={getOverallProgress()} className="h-3" />
+          <Progress value={getOverallProgress()} className="h-3" data-testid="overall-progress-bar" />
         </Card>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -245,7 +245,7 @@ export default function GenerationProgressPage() {
                           {stage.message && (
                             <p className="text-sm text-gray-600 mb-2">{stage.message}</p>
                           )}
-                          <Progress value={stage.progress} className="h-2" />
+                          <Progress value={stage.progress} className="h-2" data-testid={`stage-progress-${stage.id}`} />
                         </div>
                       </div>
                     </motion.div>

@@ -40,10 +40,10 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
-import { toast } from '@/lib/hooks/use-toast'
+import { toast } from '@/hooks/use-toast'
 
-// Mock data
-const mockCourses = [
+// Mock data - Can be overridden for testing
+let mockCourses = [
   {
     id: 'test-course-1',
     title: 'Introduction to Machine Learning',
@@ -79,7 +79,11 @@ const mockCourses = [
   }
 ]
 
-export default function CoursesPage() {
+interface CoursesPageProps {
+  courses?: typeof mockCourses
+}
+
+export default function CoursesPage({ courses = mockCourses }: CoursesPageProps = {}) {
   const [searchTerm, setSearchTerm] = useState('')
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid')
   const [selectedCourses, setSelectedCourses] = useState<Set<string>>(new Set())
@@ -89,7 +93,7 @@ export default function CoursesPage() {
   const [bulkDeleteDialogOpen, setBulkDeleteDialogOpen] = useState(false)
   const [courseToDelete, setCourseToDelete] = useState<typeof mockCourses[0] | null>(null)
 
-  const filteredCourses = mockCourses.filter(course => {
+  const filteredCourses = courses.filter(course => {
     const matchesSearch = course.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
       course.description.toLowerCase().includes(searchTerm.toLowerCase())
     
@@ -254,6 +258,7 @@ export default function CoursesPage() {
               variant={viewMode === 'grid' ? 'default' : 'ghost'}
               size="sm"
               onClick={() => setViewMode('grid')}
+              aria-label="Grid view"
             >
               <Grid className="h-4 w-4" />
             </Button>
@@ -261,6 +266,7 @@ export default function CoursesPage() {
               variant={viewMode === 'list' ? 'default' : 'ghost'}
               size="sm"
               onClick={() => setViewMode('list')}
+              aria-label="List view"
             >
               <List className="h-4 w-4" />
             </Button>
@@ -531,8 +537,8 @@ export default function CoursesPage() {
       )}
 
       {/* Delete Confirmation Dialog */}
-      <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen} data-testid="delete-confirmation-dialog">
-        <DialogContent>
+      <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <DialogContent data-testid="delete-confirmation-dialog">
           <DialogHeader>
             <DialogTitle>Delete Course</DialogTitle>
             <DialogDescription>
@@ -562,8 +568,8 @@ export default function CoursesPage() {
       </Dialog>
 
       {/* Bulk Delete Confirmation Dialog */}
-      <Dialog open={bulkDeleteDialogOpen} onOpenChange={setBulkDeleteDialogOpen} data-testid="bulk-delete-confirmation">
-        <DialogContent>
+      <Dialog open={bulkDeleteDialogOpen} onOpenChange={setBulkDeleteDialogOpen}>
+        <DialogContent data-testid="bulk-delete-confirmation">
           <DialogHeader>
             <DialogTitle>Delete Multiple Courses</DialogTitle>
             <DialogDescription>

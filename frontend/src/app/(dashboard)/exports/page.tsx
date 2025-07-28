@@ -139,7 +139,7 @@ const MOCK_EXPORT_HISTORY: ExportJob[] = [
     format: 'html',
     status: 'completed',
     progress: 100,
-    size: 2400000,
+    size: 2400000, // 2.29 MB
     downloadUrl: 'https://example.com/exports/exp_004.zip',
     createdAt: new Date(Date.now() - 2 * 60 * 60 * 1000),
     completedAt: new Date(Date.now() - 2 * 60 * 60 * 1000 + 3 * 60 * 1000),
@@ -488,7 +488,7 @@ export default function ExportsPage() {
         </TabsList>
 
         {/* Dashboard Tab */}
-        <TabsContent value="dashboard" className="space-y-6">
+        <TabsContent value="dashboard" className="space-y-6" data-testid="dashboard-tab-content">
           {/* Active Exports */}
           <Card>
             <CardHeader>
@@ -523,13 +523,13 @@ export default function ExportsPage() {
                               <FormatIcon className="w-5 h-5 text-gray-600" />
                             </div>
                             <div>
-                              <h3 className="font-medium text-gray-900 dark:text-white">{export_.courseName}</h3>
+                              <h3 className="font-medium text-gray-900 dark:text-white" data-testid={`active-export-${export_.id}`}>{export_.courseName}</h3>
                               <p className="text-sm text-gray-500">{export_.format.toUpperCase()} • {export_.template}</p>
                             </div>
                           </div>
                           
                           <div className="flex items-center gap-2">
-                            <Badge className={getStatusColor(export_.status)}>
+                            <Badge className={getStatusColor(export_.status)} data-testid={`status-badge-${export_.status}`}>
                               <StatusIcon className={`w-3 h-3 mr-1 ${export_.status === 'processing' ? 'animate-spin' : ''}`} />
                               {export_.status}
                             </Badge>
@@ -631,7 +631,7 @@ export default function ExportsPage() {
         </TabsContent>
 
         {/* History Tab */}
-        <TabsContent value="history" className="space-y-6">
+        <TabsContent value="history" className="space-y-6" data-testid="history-tab-content">
           {/* Filters and Search */}
           <Card>
             <CardContent className="p-4">
@@ -643,12 +643,13 @@ export default function ExportsPage() {
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     className="pl-10"
+                    data-testid="exports-search"
                   />
                 </div>
                 
                 <div className="flex gap-2">
                   <Select value={statusFilter} onValueChange={setStatusFilter}>
-                    <SelectTrigger className="w-32">
+                    <SelectTrigger className="w-32" data-testid="status-filter">
                       <SelectValue placeholder="Status" />
                     </SelectTrigger>
                     <SelectContent>
@@ -661,7 +662,7 @@ export default function ExportsPage() {
                   </Select>
                   
                   <Select value={formatFilter} onValueChange={setFormatFilter}>
-                    <SelectTrigger className="w-32">
+                    <SelectTrigger className="w-32" data-testid="format-filter">
                       <SelectValue placeholder="Format" />
                     </SelectTrigger>
                     <SelectContent>
@@ -747,7 +748,7 @@ export default function ExportsPage() {
                         <div className="flex-1">
                           <div className="flex items-center gap-2 mb-1">
                             <h3 className="font-medium text-gray-900 dark:text-white">{export_.courseName}</h3>
-                            <Badge className={getStatusColor(export_.status)}>
+                            <Badge className={getStatusColor(export_.status)} data-testid={`status-badge-${export_.status}`}>
                               <StatusIcon className={`w-3 h-3 mr-1 ${export_.status === 'processing' ? 'animate-spin' : ''}`} />
                               {export_.status}
                             </Badge>
@@ -832,17 +833,17 @@ export default function ExportsPage() {
         </TabsContent>
 
         {/* Analytics Tab */}
-        <TabsContent value="analytics" className="space-y-6">
+        <TabsContent value="analytics" className="space-y-6" data-testid="analytics-tab-content">
           <AnalyticsDashboard />
         </TabsContent>
 
         {/* Distribution Tab */}
-        <TabsContent value="distribution" className="space-y-6">
+        <TabsContent value="distribution" className="space-y-6" data-testid="distribution-tab-content">
           <DistributionCenter />
         </TabsContent>
 
         {/* Versions Tab */}
-        <TabsContent value="versions" className="space-y-6">
+        <TabsContent value="versions" className="space-y-6" data-testid="versions-tab-content">
           <VersionControl 
             onVersionRestore={(version) => {
               console.log('Restoring version:', version)
