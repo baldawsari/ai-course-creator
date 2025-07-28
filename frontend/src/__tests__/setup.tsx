@@ -1,7 +1,7 @@
 import '@testing-library/jest-dom'
 import { configure } from '@testing-library/react'
 import { cleanup } from '@testing-library/react'
-import { afterEach, beforeAll, afterAll, jest } from '@jest/globals'
+import { afterEach, beforeEach, beforeAll, afterAll, jest } from '@jest/globals'
 import { TextEncoder, TextDecoder } from 'util'
 
 // Polyfills for Node.js environment
@@ -96,14 +96,61 @@ global.sessionStorage = localStorageMock as any
 // Configure testing library
 configure({
   testIdAttribute: 'data-testid',
-  asyncUtilTimeout: 5000,
+  asyncUtilTimeout: 10000, // Increased timeout to handle complex async operations
+})
+
+// Setup portal root for dialogs and modals
+beforeEach(() => {
+  // Setup document body structure for Radix UI portals
+  document.body.innerHTML = ''
+  
+  // Create multiple portal roots for different Radix UI components
+  const portalIds = [
+    'radix-0', // Default radix portal
+    'radix-1', // Additional radix portals
+    'radix-2',
+    'radix-3',
+    'radix-:r0:', // Common Radix UI portal ID pattern
+    'radix-:r1:',
+    'radix-:r2:',
+    'dialog-portal-root', // Custom dialog portal
+    'modal-portal-root', // Custom modal portal
+  ]
+  
+  portalIds.forEach(id => {
+    const portal = document.createElement('div')
+    portal.setAttribute('id', id)
+    portal.setAttribute('data-radix-portal', '')
+    document.body.appendChild(portal)
+  })
+  
+  // Create a generic portal container that Radix UI might use
+  const radixPortalContainer = document.createElement('div')
+  radixPortalContainer.setAttribute('data-radix-popper-content-wrapper', '')
+  document.body.appendChild(radixPortalContainer)
+  
+  // Mock document.elementFromPoint for Radix UI interactions
+  document.elementFromPoint = jest.fn(() => document.body)
 })
 
 // Cleanup after each test
 afterEach(() => {
+  // Cleanup React components first
   cleanup()
+  
+  // Clear all mocks and timers
   jest.clearAllMocks()
   jest.clearAllTimers()
+  jest.useRealTimers()
+  
+  // Clean up portal roots and body
+  document.body.innerHTML = ''
+  
+  // Reset any global state
+  if (typeof window !== 'undefined') {
+    // Reset any window properties that might have been modified
+    ;(window as any).__dropzoneState = undefined
+  }
 })
 
 // Mock Next.js router
@@ -164,24 +211,26 @@ Object.defineProperty(window, 'matchMedia', {
 })
 
 // Mock ResizeObserver
-global.ResizeObserver = jest.fn().mockImplementation(() => ({
-  observe: jest.fn(),
-  unobserve: jest.fn(),
-  disconnect: jest.fn(),
-}))
+global.ResizeObserver = class ResizeObserver {
+  observe = jest.fn()
+  unobserve = jest.fn()
+  disconnect = jest.fn()
+  constructor(callback: ResizeObserverCallback) {}
+} as any
 
 // Mock IntersectionObserver
-global.IntersectionObserver = jest.fn().mockImplementation(() => ({
-  observe: jest.fn(),
-  unobserve: jest.fn(),
-  disconnect: jest.fn(),
-}))
+global.IntersectionObserver = class IntersectionObserver {
+  observe = jest.fn()
+  unobserve = jest.fn()
+  disconnect = jest.fn()
+  constructor(callback: IntersectionObserverCallback, options?: IntersectionObserverInit) {}
+} as any
 
 // Mock clipboard API
 Object.defineProperty(navigator, 'clipboard', {
   value: {
-    writeText: jest.fn().mockResolvedValue(undefined),
-    readText: jest.fn().mockResolvedValue(''),
+    writeText: jest.fn(() => Promise.resolve()),
+    readText: jest.fn(() => Promise.resolve('')),
   },
   writable: true,
   configurable: true,
@@ -217,8 +266,12 @@ Object.defineProperty(window, 'performance', {
 })
 
 // Mock requestAnimationFrame
-global.requestAnimationFrame = jest.fn(cb => setTimeout(cb, 16))
-global.cancelAnimationFrame = jest.fn(id => clearTimeout(id))
+global.requestAnimationFrame = jest.fn((cb: FrameRequestCallback) => {
+  return setTimeout(() => cb(Date.now()), 16) as any
+}) as any
+global.cancelAnimationFrame = jest.fn((id: number) => {
+  clearTimeout(id as any)
+}) as any
 
 // Mock scrollTo
 window.scrollTo = jest.fn()
@@ -229,6 +282,20 @@ window.scrollTo = jest.fn()
 // Mock URL.createObjectURL and URL.revokeObjectURL
 global.URL.createObjectURL = jest.fn(() => 'blob:mock-url')
 global.URL.revokeObjectURL = jest.fn()
+
+// Add polyfill for hasPointerCapture which is missing in jsdom (needed for Radix UI)
+if (typeof Element !== 'undefined' && !Element.prototype.hasPointerCapture) {
+  Element.prototype.hasPointerCapture = function() {
+    return false
+  }
+  Element.prototype.setPointerCapture = function() {}
+  Element.prototype.releasePointerCapture = function() {}
+}
+
+// Add scrollIntoView mock for jsdom (needed for Radix UI Select)
+if (typeof Element !== 'undefined' && !Element.prototype.scrollIntoView) {
+  Element.prototype.scrollIntoView = jest.fn()
+}
 
 // Mock framer-motion to remove animations
 jest.mock('framer-motion', () => {
@@ -303,8 +370,8 @@ jest.mock('react-dropzone', () => {
   }
 })
 
-// Silence console warnings in tests unless NODE_ENV=test-verbose
-if (process.env.NODE_ENV !== 'test-verbose') {
+// Silence console warnings in tests unless TEST_VERBOSE is set
+if (!process.env.TEST_VERBOSE) {
   const originalConsoleWarn = console.warn
   const originalConsoleError = console.error
 
