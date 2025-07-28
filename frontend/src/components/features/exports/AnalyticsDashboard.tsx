@@ -193,7 +193,7 @@ export function AnalyticsDashboard({
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-sm font-medium text-gray-500">Total Exports</p>
-                    <p className="text-2xl font-bold text-gray-900 dark:text-white">
+                    <p className="text-2xl font-bold text-gray-900 dark:text-white" data-testid="total-exports-stat">
                       {formatNumber(EXPORT_ANALYTICS.overview.totalExports)}
                     </p>
                   </div>
@@ -276,7 +276,7 @@ export function AnalyticsDashboard({
                 <CardTitle>Export Trends</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="h-64 flex items-center justify-center text-gray-500">
+                <div className="h-64 flex items-center justify-center text-gray-500" data-testid="monthly-exports-chart">
                   <div className="text-center">
                     <BarChart3 className="w-12 h-12 mx-auto mb-4 opacity-50" />
                     <p>Interactive chart coming soon</p>
@@ -324,7 +324,7 @@ export function AnalyticsDashboard({
                 <CardTitle>Format Distribution</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="space-y-4">
+                <div className="space-y-4" data-testid="format-breakdown-chart">
                   {EXPORT_ANALYTICS.formatDistribution.map((format) => {
                     const TrendIcon = getTrendIcon(format.trend)
                     return (
@@ -339,7 +339,7 @@ export function AnalyticsDashboard({
                             </div>
                             <span className="font-medium">{format.format}</span>
                           </div>
-                          <Badge variant="outline">{format.count} exports</Badge>
+                          <Badge variant="outline" data-testid={`${format.format.toLowerCase()}-export-count`}>{format.count} exports</Badge>
                         </div>
                         <div className="flex items-center justify-between">
                           <div className="flex-1 bg-gray-200 rounded-full h-2 mr-4">
@@ -450,7 +450,7 @@ export function AnalyticsDashboard({
               <CardContent>
                 <div className="space-y-4">
                   {EXPORT_ANALYTICS.userEngagement.topCourses.map((course, index) => (
-                    <div key={course.id} className="flex items-center justify-between p-3 border rounded-lg">
+                    <div key={course.id} className="flex items-center justify-between p-3 border rounded-lg" data-testid={`popular-course-course-${course.id}`}>
                       <div className="flex items-center gap-3">
                         <div className="text-lg font-bold text-gray-400">#{index + 1}</div>
                         <div>

@@ -56,6 +56,17 @@ import {
 import { AnalyticsDashboard } from '@/components/features/exports/AnalyticsDashboard'
 import { DistributionCenter } from '@/components/features/exports/DistributionCenter'
 import { VersionControl } from '@/components/features/exports/VersionControl'
+import { ShareModal } from '@/components/features/exports/ShareModal'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
 
 // Types
 interface ExportJob {
@@ -199,6 +210,9 @@ export default function ExportsPage() {
   const [selectedExports, setSelectedExports] = useState<Set<string>>(new Set())
   const [sortBy, setSortBy] = useState('createdAt')
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc')
+  const [shareModalOpen, setShareModalOpen] = useState(false)
+  const [shareExport, setShareExport] = useState<ExportJob | null>(null)
+  const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false)
 
   // Combine active and history exports
   const allExports = useMemo(() => [...MOCK_ACTIVE_EXPORTS, ...MOCK_EXPORT_HISTORY], [])
@@ -294,12 +308,18 @@ export default function ExportsPage() {
 
   // Batch actions
   const handleBatchDelete = useCallback(() => {
-    console.log('Batch deleting:', Array.from(selectedExports))
-    setSelectedExports(new Set())
-  }, [selectedExports])
+    setBulkDeleteOpen(true)
+  }, [])
 
   const handleBatchDownload = useCallback(() => {
     console.log('Batch downloading:', Array.from(selectedExports))
+  }, [selectedExports])
+  
+  const handleConfirmBulkDelete = useCallback(() => {
+    console.log('Batch deleting:', Array.from(selectedExports))
+    setSelectedExports(new Set())
+    setBulkDeleteOpen(false)
+    // Show success toast
   }, [selectedExports])
 
   // Get status icon
@@ -394,7 +414,7 @@ export default function ExportsPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-gray-500">Total Exports</p>
-                <p className="text-2xl font-bold text-gray-900 dark:text-white">{MOCK_STATS.totalExports}</p>
+                <p className="text-2xl font-bold text-gray-900 dark:text-white" data-testid="total-exports-stat">{MOCK_STATS.totalExports}</p>
               </div>
               <div className="p-3 bg-blue-100 rounded-full">
                 <Download className="w-6 h-6 text-blue-600" />
@@ -473,7 +493,7 @@ export default function ExportsPage() {
             <History className="w-4 h-4" />
             History
           </TabsTrigger>
-          <TabsTrigger value="analytics" className="flex items-center gap-2">
+          <TabsTrigger value="analytics" className="flex items-center gap-2" data-testid="analytics-tab">
             <TrendingUp className="w-4 h-4" />
             Analytics
           </TabsTrigger>
@@ -516,6 +536,7 @@ export default function ExportsPage() {
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
                         className="border rounded-lg p-4 hover:shadow-md transition-shadow"
+                        data-testid={`export-item-${export_.id}`}
                       >
                         <div className="flex items-center justify-between mb-3">
                           <div className="flex items-center gap-3">
@@ -529,7 +550,7 @@ export default function ExportsPage() {
                           </div>
                           
                           <div className="flex items-center gap-2">
-                            <Badge className={getStatusColor(export_.status)}>
+                            <Badge className={getStatusColor(export_.status)} data-testid={`export-status-${export_.status}`}>
                               <StatusIcon className={`w-3 h-3 mr-1 ${export_.status === 'processing' ? 'animate-spin' : ''}`} />
                               {export_.status}
                             </Badge>
@@ -567,7 +588,7 @@ export default function ExportsPage() {
                             <span className="text-gray-500">Progress</span>
                             <span className="font-medium">{export_.progress}%</span>
                           </div>
-                          <Progress value={export_.progress} className="h-2" />
+                          <Progress value={export_.progress} className="h-2" data-testid="progress-bar" />
                           <div className="flex items-center justify-between text-xs text-gray-500">
                             <span>Started {formatRelativeTime(export_.createdAt)}</span>
                             <span>Version {export_.version}</span>
@@ -600,7 +621,7 @@ export default function ExportsPage() {
                   const FormatIcon = getFormatIcon(export_.format)
                   
                   return (
-                    <div key={export_.id} className="flex items-center justify-between p-3 border rounded-lg">
+                    <div key={export_.id} className="flex items-center justify-between p-3 border rounded-lg" data-testid={`export-item-${export_.id}`}>
                       <div className="flex items-center gap-3">
                         <div className="p-2 bg-gray-100 rounded-lg">
                           <FormatIcon className="w-4 h-4 text-gray-600" />
@@ -618,8 +639,14 @@ export default function ExportsPage() {
                           <p className="text-gray-900 dark:text-white">{export_.downloads} downloads</p>
                           <p className="text-gray-500 text-xs">{export_.shares} shares</p>
                         </div>
-                        <Button variant="outline" size="sm" onClick={() => handleDownload(export_)}>
+                        <Button variant="outline" size="sm" onClick={() => handleDownload(export_)} data-testid="download-link">
                           <Download className="w-3 h-3" />
+                        </Button>
+                        <Button variant="outline" size="sm" data-testid="share-button" onClick={() => {
+                          setShareExport(export_)
+                          setShareModalOpen(true)
+                        }}>
+                          <Share2 className="w-3 h-3" />
                         </Button>
                       </div>
                     </div>
@@ -681,16 +708,16 @@ export default function ExportsPage() {
               
               {/* Batch Actions */}
               {selectedExports.size > 0 && (
-                <div className="mt-4 p-3 bg-blue-50 rounded-lg flex items-center justify-between">
-                  <span className="text-sm text-blue-700">
+                <div className="mt-4 p-3 bg-blue-50 rounded-lg flex items-center justify-between" data-testid="bulk-actions-bar">
+                  <span className="text-sm text-blue-700" data-testid="selected-count">
                     {selectedExports.size} export{selectedExports.size === 1 ? '' : 's'} selected
                   </span>
                   <div className="flex gap-2">
-                    <Button variant="outline" size="sm" onClick={handleBatchDownload}>
+                    <Button variant="outline" size="sm" onClick={handleBatchDownload} data-testid="bulk-download-button">
                       <Download className="w-3 h-3 mr-1" />
                       Download
                     </Button>
-                    <Button variant="outline" size="sm" onClick={handleBatchDelete} className="text-red-600">
+                    <Button variant="outline" size="sm" onClick={handleBatchDelete} className="text-red-600" data-testid="bulk-delete-button">
                       <Trash2 className="w-3 h-3 mr-1" />
                       Delete
                     </Button>
@@ -719,7 +746,7 @@ export default function ExportsPage() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="space-y-2">
+              <div className="space-y-2" data-testid="export-history-list">
                 {filteredExports.map((export_) => {
                   const FormatIcon = getFormatIcon(export_.format)
                   const StatusIcon = getStatusIcon(export_.status)
@@ -733,11 +760,13 @@ export default function ExportsPage() {
                       className={`border rounded-lg p-4 transition-all ${
                         isSelected ? 'bg-blue-50 border-blue-200' : 'hover:shadow-sm'
                       }`}
+                      data-testid={`export-item-${export_.id}`}
                     >
                       <div className="flex items-center gap-4">
                         <Checkbox
                           checked={isSelected}
                           onCheckedChange={(checked) => handleExportSelect(export_.id, checked as boolean)}
+                          data-testid={`select-export-${export_.id}`}
                         />
                         
                         <div className="p-2 bg-gray-100 rounded-lg">
@@ -747,7 +776,7 @@ export default function ExportsPage() {
                         <div className="flex-1">
                           <div className="flex items-center gap-2 mb-1">
                             <h3 className="font-medium text-gray-900 dark:text-white">{export_.courseName}</h3>
-                            <Badge className={getStatusColor(export_.status)}>
+                            <Badge className={getStatusColor(export_.status)} data-testid={`export-status-${export_.status}`}>
                               <StatusIcon className={`w-3 h-3 mr-1 ${export_.status === 'processing' ? 'animate-spin' : ''}`} />
                               {export_.status}
                             </Badge>
@@ -778,11 +807,14 @@ export default function ExportsPage() {
                         
                         <div className="flex items-center gap-1">
                           {export_.downloadUrl && (
-                            <Button variant="outline" size="sm" onClick={() => handleDownload(export_)}>
+                            <Button variant="outline" size="sm" onClick={() => handleDownload(export_)} data-testid="download-link">
                               <Download className="w-3 h-3" />
                             </Button>
                           )}
-                          <Button variant="outline" size="sm">
+                          <Button variant="outline" size="sm" data-testid="share-button" onClick={() => {
+                            setShareExport(export_)
+                            setShareModalOpen(true)
+                          }}>
                             <Share2 className="w-3 h-3" />
                           </Button>
                           <DropdownMenu>
@@ -832,7 +864,7 @@ export default function ExportsPage() {
         </TabsContent>
 
         {/* Analytics Tab */}
-        <TabsContent value="analytics" className="space-y-6">
+        <TabsContent value="analytics" className="space-y-6" data-testid="analytics-tab-content">
           <AnalyticsDashboard />
         </TabsContent>
 
@@ -855,6 +887,35 @@ export default function ExportsPage() {
           />
         </TabsContent>
       </Tabs>
+      
+      {/* Share Modal */}
+      {shareExport && (
+        <ShareModal
+          open={shareModalOpen}
+          onOpenChange={setShareModalOpen}
+          exportId={shareExport.id}
+          exportTitle={shareExport.courseName}
+          exportFormat={shareExport.format}
+        />
+      )}
+      
+      {/* Bulk Delete Confirmation */}
+      <AlertDialog open={bulkDeleteOpen} onOpenChange={setBulkDeleteOpen}>
+        <AlertDialogContent data-testid="bulk-delete-confirmation">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete {selectedExports.size} exports?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone. The selected exports will be permanently deleted from your account.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleConfirmBulkDelete} data-testid="confirm-bulk-delete">
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }

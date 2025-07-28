@@ -133,6 +133,188 @@ test.describe('Performance Tests', () => {
     expect(submissionTime).toBeLessThan(5000) // 5 second budget for large form
   })
 
+  test('should handle course generation efficiently', async ({ page }) => {
+    await helpers.login()
+    await page.goto('/courses/new')
+    
+    // Upload test documents
+    await page.click('[data-testid="upload-button"]')
+    await helpers.uploadMultipleFiles('[data-testid="file-input"]', [
+      '../fixtures/test-doc-1.pdf',
+      '../fixtures/test-doc-2.pdf',
+      '../fixtures/test-doc-3.pdf'
+    ])
+    
+    // Wait for processing
+    await page.waitForSelector('[data-testid="upload-complete"]')
+    
+    // Configure course
+    await page.click('[data-testid="next-step-button"]')
+    await page.fill('[data-testid="course-title-input"]', 'AI Performance Test')
+    await page.selectOption('[data-testid="difficulty-select"]', 'intermediate')
+    await page.fill('[data-testid="duration-input"]', '60')
+    
+    // Start generation with timing
+    const generationStart = Date.now()
+    
+    // Mock course generation API
+    await helpers.mockApiResponse('**/courses/generate', {
+      jobId: 'job-123',
+      status: 'processing'
+    })
+    
+    await page.click('[data-testid="generate-course-button"]')
+    
+    // Should navigate to progress page quickly
+    await page.waitForURL('**/generation/job-123')
+    const navigationTime = Date.now() - generationStart
+    expect(navigationTime).toBeLessThan(2000)
+    
+    // Mock progress updates
+    await helpers.mockApiResponse('**/jobs/job-123', {
+      status: 'completed',
+      progress: 100,
+      result: { courseId: 'course-456' }
+    })
+    
+    // Wait for completion
+    await page.waitForSelector('[data-testid="generation-complete"]', { timeout: 60000 })
+    const totalGenerationTime = Date.now() - generationStart
+    
+    // Should complete within reasonable time for 3 documents
+    expect(totalGenerationTime).toBeLessThan(60000) // 60 second budget
+  })
+
+  test('should handle document processing performance', async ({ page }) => {
+    await helpers.login()
+    await page.goto('/courses/new')
+    
+    // Monitor file processing performance
+    const processingMetrics: any[] = []
+    
+    page.on('response', (response) => {
+      if (response.url().includes('/api/documents/process')) {
+        processingMetrics.push({
+          url: response.url(),
+          status: response.status(),
+          timing: response.timing()
+        })
+      }
+    })
+    
+    // Upload large document
+    await page.click('[data-testid="upload-button"]')
+    const largeFileStart = Date.now()
+    
+    await helpers.uploadFile('[data-testid="file-input"]', '../fixtures/large-document.pdf')
+    
+    // Wait for processing to complete
+    await page.waitForSelector('[data-testid="file-processed"]', { timeout: 30000 })
+    const processingTime = Date.now() - largeFileStart
+    
+    // Check processing time based on file size (assuming 10MB file)
+    expect(processingTime).toBeLessThan(30000) // 30 seconds for 10MB
+    
+    // Check chunking performance
+    const chunkingMetrics = await page.evaluate(() => {
+      return (window as any).__chunkingMetrics || {}
+    })
+    
+    if (chunkingMetrics.chunksCreated) {
+      expect(chunkingMetrics.averageChunkTime).toBeLessThan(100) // 100ms per chunk
+    }
+  })
+
+  test('should handle RAG search efficiently', async ({ page }) => {
+    await helpers.login()
+    
+    // Navigate to course with many documents
+    await page.goto('/courses/course-123/edit')
+    
+    // Mock large vector search response
+    await helpers.mockApiResponse('**/search/vectors', {
+      results: Array.from({ length: 100 }, (_, i) => ({
+        id: `chunk-${i}`,
+        content: `Search result ${i}`,
+        score: 0.9 - (i * 0.001),
+        metadata: { page: Math.floor(i / 10) + 1 }
+      }))
+    })
+    
+    // Perform search
+    const searchStart = Date.now()
+    await page.fill('[data-testid="rag-search-input"]', 'machine learning algorithms')
+    await page.click('[data-testid="search-button"]')
+    
+    // Wait for results
+    await page.waitForSelector('[data-testid="search-results"]')
+    const searchTime = Date.now() - searchStart
+    
+    // Vector search should be fast
+    expect(searchTime).toBeLessThan(2000) // 2 second budget
+    
+    // Check result rendering performance
+    const resultCards = page.locator('[data-testid^="search-result-"]')
+    const resultCount = await resultCards.count()
+    expect(resultCount).toBeGreaterThan(0)
+    
+    // Scroll through results
+    const scrollStart = Date.now()
+    await page.evaluate(() => {
+      const container = document.querySelector('[data-testid="search-results"]')
+      if (container) {
+        container.scrollTop = container.scrollHeight
+      }
+    })
+    const scrollTime = Date.now() - scrollStart
+    
+    expect(scrollTime).toBeLessThan(500) // Smooth scrolling
+  })
+
+  test('should handle course export efficiently', async ({ page }) => {
+    await helpers.login()
+    await page.goto('/courses/course-123')
+    
+    // Test different export formats
+    const exportFormats = ['html', 'pdf', 'pptx']
+    
+    for (const format of exportFormats) {
+      await page.click('[data-testid="export-button"]')
+      await page.click(`[data-testid="export-${format}"]`)
+      
+      // Mock export API
+      await helpers.mockApiResponse(`**/courses/course-123/export/${format}`, {
+        exportId: `export-${format}-123`,
+        status: 'processing'
+      })
+      
+      const exportStart = Date.now()
+      await page.click('[data-testid="confirm-export"]')
+      
+      // Mock progress
+      await helpers.mockApiResponse(`**/exports/export-${format}-123`, {
+        status: 'completed',
+        downloadUrl: `/downloads/course-123.${format}`
+      })
+      
+      // Wait for export completion
+      await page.waitForSelector('[data-testid="export-complete"]')
+      const exportTime = Date.now() - exportStart
+      
+      // Export times should be reasonable
+      const expectedTimes: Record<string, number> = {
+        html: 5000,  // 5 seconds for HTML
+        pdf: 15000,  // 15 seconds for PDF
+        pptx: 20000  // 20 seconds for PowerPoint
+      }
+      
+      expect(exportTime).toBeLessThan(expectedTimes[format])
+      
+      // Close modal
+      await page.click('[data-testid="close-modal"]')
+    }
+  })
+
   test('should render large lists efficiently', async ({ page }) => {
     await helpers.login()
     
@@ -399,7 +581,147 @@ test.describe('Performance Tests', () => {
     // Should prefetch external domains (API, CDN, etc.)
     expect(dnsPrefetches.length).toBeGreaterThan(0)
   })
-})
+
+  test('should handle real-time collaboration efficiently', async ({ page, context }) => {
+    await helpers.login()
+    
+    // Open course in multiple tabs to simulate collaboration
+    const page2 = await context.newPage()
+    const helpers2 = new TestHelpers(page2)
+    await helpers2.login('user2@example.com', 'password123')
+    
+    // Both users navigate to same course
+    await page.goto('/courses/course-123/edit')
+    await page2.goto('/courses/course-123/edit')
+    
+    // Mock WebSocket connection
+    await page.evaluate(() => {
+      (window as any).__wsMessageCount = 0
+      (window as any).__wsLatencies = []
+    })
+    
+    // Simulate real-time updates
+    const updateStart = Date.now()
+    
+    // User 1 makes changes
+    await page.fill('[data-testid="session-title-0"]', 'Updated Session Title')
+    
+    // Mock WebSocket message
+    await page.evaluate(() => {
+      const event = new CustomEvent('ws-message', {
+        detail: {
+          type: 'session.update',
+          sessionId: 'session-0',
+          data: { title: 'Updated Session Title' }
+        }
+      })
+      window.dispatchEvent(event)
+    })
+    
+    // Check update appears in second tab
+    await page2.waitForSelector('[data-testid="session-title-0"]:has-text("Updated Session Title")')
+    const syncTime = Date.now() - updateStart
+    
+    expect(syncTime).toBeLessThan(1000) // 1 second for real-time sync
+    
+    // Test multiple concurrent updates
+    const concurrentUpdates = 10
+    const updatePromises = []
+    
+    for (let i = 0; i < concurrentUpdates; i++) {
+      updatePromises.push(
+        page.fill(`[data-testid="activity-title-${i}"]`, `Activity ${i} Updated`)
+      )
+    }
+    
+    const bulkUpdateStart = Date.now()
+    await Promise.all(updatePromises)
+    const bulkUpdateTime = Date.now() - bulkUpdateStart
+    
+    expect(bulkUpdateTime).toBeLessThan(3000) // 3 seconds for 10 concurrent updates
+    
+    await page2.close()
+  })
+
+  test('should monitor background job performance', async ({ page }) => {
+    await helpers.login()
+    await page.goto('/jobs')
+    
+    // Mock multiple background jobs
+    await helpers.mockApiResponse('**/jobs*', {
+      jobs: Array.from({ length: 50 }, (_, i) => ({
+        id: `job-${i}`,
+        type: i % 3 === 0 ? 'course.generation' : i % 3 === 1 ? 'document.processing' : 'export.generation',
+        status: i % 4 === 0 ? 'completed' : i % 4 === 1 ? 'processing' : i % 4 === 2 ? 'failed' : 'queued',
+        progress: Math.floor(Math.random() * 100),
+        createdAt: new Date(Date.now() - i * 3600000).toISOString()
+      }))
+    })
+    
+    await page.reload()
+    
+    // Check job list rendering performance
+    const renderStart = Date.now()
+    await page.waitForSelector('[data-testid="jobs-list"]')
+    const jobCards = page.locator('[data-testid^="job-card-"]')
+    await expect(jobCards).toHaveCount(50)
+    const renderTime = Date.now() - renderStart
+    
+    expect(renderTime).toBeLessThan(2000) // 2 seconds to render 50 jobs
+    
+    // Test job status polling
+    let pollCount = 0
+    page.on('request', (request) => {
+      if (request.url().includes('/api/jobs') && request.method() === 'GET') {
+        pollCount++
+      }
+    })
+    
+    // Wait for automatic polling (should poll every 5 seconds)
+    await page.waitForTimeout(11000)
+    
+    // Should have made 2-3 poll requests in 11 seconds
+    expect(pollCount).toBeGreaterThanOrEqual(2)
+    expect(pollCount).toBeLessThanOrEqual(3)
+  })
+
+  test('should handle PWA performance requirements', async ({ page }) => {
+    await page.goto('/')
+    
+    // Check service worker registration
+    const swRegistered = await page.evaluate(() => {
+      return navigator.serviceWorker.controller !== null
+    })
+    
+    if (swRegistered) {
+      // Test offline capabilities
+      await page.context().setOffline(true)
+      
+      // Critical pages should still load from cache
+      await page.goto('/login')
+      await expect(page.locator('[data-testid="login-form"]')).toBeVisible()
+      
+      await page.context().setOffline(false)
+    }
+    
+    // Check PWA manifest
+    const manifest = await page.evaluate(() => {
+      const link = document.querySelector('link[rel="manifest"]')
+      return link ? link.getAttribute('href') : null
+    })
+    
+    expect(manifest).toBeTruthy()
+    
+    // Test app installation prompt
+    const installable = await page.evaluate(() => {
+      return 'BeforeInstallPromptEvent' in window
+    })
+    
+    if (installable) {
+      // Check install button appears
+      await expect(page.locator('[data-testid="install-app-button"]')).toBeVisible()
+    }
+  })
 
 test.describe('Performance Tests - Mobile', () => {
   let helpers: TestHelpers
