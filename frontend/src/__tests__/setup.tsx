@@ -153,7 +153,7 @@ jest.mock('next/link', () => ({
   ),
 }))
 
-// Mock environment variables
+// Mock environment variables - Note: API client expects URL without /api suffix
 process.env.NEXT_PUBLIC_API_URL = 'http://localhost:3001'
 process.env.NEXT_PUBLIC_WS_URL = 'http://localhost:3001'
 process.env.NEXT_PUBLIC_SUPABASE_URL = 'https://test.supabase.co'
