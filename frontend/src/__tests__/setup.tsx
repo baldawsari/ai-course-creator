@@ -3,6 +3,7 @@ import { configure } from '@testing-library/react'
 import { cleanup } from '@testing-library/react'
 import { afterEach, beforeEach, beforeAll, afterAll, jest } from '@jest/globals'
 import { TextEncoder, TextDecoder } from 'util'
+import { server } from './utils/api-mocks'
 
 // Polyfills for Node.js environment
 global.TextEncoder = TextEncoder
@@ -133,7 +134,10 @@ beforeEach(() => {
   document.elementFromPoint = jest.fn(() => document.body)
 })
 
-// Cleanup after each test
+// Start MSW server
+beforeAll(() => server.listen({ onUnhandledRequest: 'warn' }))
+
+// Reset handlers after each test
 afterEach(() => {
   // Cleanup React components first
   cleanup()
@@ -142,6 +146,9 @@ afterEach(() => {
   jest.clearAllMocks()
   jest.clearAllTimers()
   jest.useRealTimers()
+  
+  // Reset MSW handlers
+  server.resetHandlers()
   
   // Clean up portal roots and body
   document.body.innerHTML = ''
@@ -152,6 +159,12 @@ afterEach(() => {
     ;(window as any).__dropzoneState = undefined
   }
 })
+
+// Clean up after all tests
+afterAll(() => server.close())
+
+// Mock use-toast hook
+jest.mock('@/hooks/use-toast', () => require('@/__mocks__/hooks/use-toast'))
 
 // Mock Next.js router
 jest.mock('next/navigation', () => ({
@@ -189,7 +202,7 @@ jest.mock('next/link', () => ({
   ),
 }))
 
-// Mock environment variables
+// Mock environment variables - Note: API client expects URL without /api suffix
 process.env.NEXT_PUBLIC_API_URL = 'http://localhost:3001'
 process.env.NEXT_PUBLIC_WS_URL = 'http://localhost:3001'
 process.env.NEXT_PUBLIC_SUPABASE_URL = 'https://test.supabase.co'
@@ -300,28 +313,93 @@ if (typeof Element !== 'undefined' && !Element.prototype.scrollIntoView) {
 // Mock framer-motion to remove animations
 jest.mock('framer-motion', () => {
   const React = require('react')
+  const forwardRef = React.forwardRef
+  
+  const createMotionComponent = (type: string) => 
+    forwardRef(({ children, ...props }: any, ref: any) => {
+      // Remove any animation-related props
+      const cleanProps = { ...props }
+      delete cleanProps.initial
+      delete cleanProps.animate
+      delete cleanProps.exit
+      delete cleanProps.whileHover
+      delete cleanProps.whileTap
+      delete cleanProps.whileInView
+      delete cleanProps.layout
+      delete cleanProps.transition
+      delete cleanProps.variants
+      delete cleanProps.dragConstraints
+      delete cleanProps.drag
+      // Remove animation styles
+      if (cleanProps.style) {
+        delete cleanProps.style.opacity
+        delete cleanProps.style.transform
+        delete cleanProps.style.x
+        delete cleanProps.style.y
+        delete cleanProps.style.scale
+      }
+      return React.createElement(type, { ...cleanProps, ref }, children)
+    })
+  
   return {
     motion: {
-      div: React.forwardRef(({ children, ...props }: any, ref: any) => {
-        // Remove any animation-related props
-        const cleanProps = { ...props }
-        delete cleanProps.initial
-        delete cleanProps.animate
-        delete cleanProps.exit
-        delete cleanProps.whileHover
-        delete cleanProps.whileTap
-        delete cleanProps.layout
-        delete cleanProps.transition
-        delete cleanProps.variants
-        // Remove animation styles
-        if (cleanProps.style) {
-          delete cleanProps.style.opacity
-          delete cleanProps.style.transform
-        }
-        return React.createElement('div', { ...cleanProps, ref }, children)
-      }),
+      div: createMotionComponent('div'),
+      span: createMotionComponent('span'),
+      button: createMotionComponent('button'),
+      a: createMotionComponent('a'),
+      h1: createMotionComponent('h1'),
+      h2: createMotionComponent('h2'),
+      h3: createMotionComponent('h3'),
+      h4: createMotionComponent('h4'),
+      h5: createMotionComponent('h5'),
+      h6: createMotionComponent('h6'),
+      p: createMotionComponent('p'),
+      section: createMotionComponent('section'),
+      article: createMotionComponent('article'),
+      main: createMotionComponent('main'),
+      nav: createMotionComponent('nav'),
+      aside: createMotionComponent('aside'),
+      form: createMotionComponent('form'),
+      input: createMotionComponent('input'),
+      textarea: createMotionComponent('textarea'),
+      img: createMotionComponent('img'),
+      svg: createMotionComponent('svg'),
+      path: createMotionComponent('path'),
+      g: createMotionComponent('g'),
+      circle: createMotionComponent('circle'),
+      rect: createMotionComponent('rect'),
+      ul: createMotionComponent('ul'),
+      ol: createMotionComponent('ol'),
+      li: createMotionComponent('li'),
     },
     AnimatePresence: ({ children }: any) => children,
+    useAnimation: () => ({
+      start: jest.fn(),
+      stop: jest.fn(),
+      set: jest.fn(),
+    }),
+    useInView: () => [null, true],
+    useMotionValue: (initial: any) => ({
+      get: () => initial,
+      set: jest.fn(),
+      onChange: jest.fn(),
+    }),
+    useTransform: () => ({
+      get: () => 0,
+      set: jest.fn(),
+      onChange: jest.fn(),
+    }),
+    useSpring: () => ({
+      get: () => 0,
+      set: jest.fn(),
+      onChange: jest.fn(),
+    }),
+    useScroll: () => ({
+      scrollX: { get: () => 0 },
+      scrollY: { get: () => 0 },
+      scrollXProgress: { get: () => 0 },
+      scrollYProgress: { get: () => 0 },
+    }),
   }
 })
 

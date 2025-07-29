@@ -34,7 +34,7 @@ const createPaginatedResponse = <T>(
 // Mock handlers
 export const apiHandlers = [
   // Authentication endpoints
-  http.post(`${API_BASE}/auth/login`, async () => {
+  http.post(`${API_BASE}/api/auth/login`, async () => {
     return HttpResponse.json(createSuccessResponse({
       user: MOCK_DATA.users.admin,
       token: 'mock-jwt-token',
@@ -42,7 +42,7 @@ export const apiHandlers = [
     }), { status: 200 })
   }),
 
-  http.post(`${API_BASE}/auth/register`, async () => {
+  http.post(`${API_BASE}/api/auth/register`, async () => {
     const newUser = MockDataGenerator.user()
     return HttpResponse.json(createSuccessResponse({
       user: newUser,
@@ -51,22 +51,22 @@ export const apiHandlers = [
     }), { status: 201 })
   }),
 
-  http.post(`${API_BASE}/auth/logout`, async () => {
+  http.post(`${API_BASE}/api/auth/logout`, async () => {
     return HttpResponse.json(createSuccessResponse({ message: 'Logged out successfully' }), { status: 200 })
   }),
 
-  http.get(`${API_BASE}/auth/me`, async () => {
+  http.get(`${API_BASE}/api/auth/me`, async () => {
     return HttpResponse.json(createSuccessResponse(MOCK_DATA.users.admin), { status: 200 })
   }),
 
-  http.post(`${API_BASE}/auth/forgot-password`, async () => {
+  http.post(`${API_BASE}/api/auth/forgot-password`, async () => {
     return HttpResponse.json(createSuccessResponse({
       message: 'Password reset instructions sent to your email'
     }), { status: 200 })
   }),
 
   // Document endpoints
-  http.get(`${API_BASE}/documents`, async ({ request }) => {
+  http.get(`${API_BASE}/api/documents`, async ({ request }) => {
     const url = new URL(request.url)
     const page = Number(url.searchParams.get('page')) || 1
     const limit = Number(url.searchParams.get('limit')) || 20
@@ -87,7 +87,7 @@ export const apiHandlers = [
     return HttpResponse.json(createPaginatedResponse(pageDocuments, page, limit, documents.length), { status: 200 })
   }),
 
-  http.post(`${API_BASE}/documents/upload`, async () => {
+  http.post(`${API_BASE}/api/documents/upload`, async () => {
     const newDocument = MockDataGenerator.document({
       status: 'processing',
     })
@@ -95,7 +95,7 @@ export const apiHandlers = [
     return HttpResponse.json(createSuccessResponse(newDocument), { status: 201 })
   }),
 
-  http.get(`${API_BASE}/documents/:id`, async ({ params }) => {
+  http.get(`${API_BASE}/api/documents/:id`, async ({ params }) => {
     const { id } = params
     const document = MockDataGenerator.document({ id: id as string })
     
