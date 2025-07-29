@@ -388,6 +388,280 @@ test.describe('Accessibility Tests', () => {
       expect(lang).toMatch(/^[a-z]{2}(-[A-Z]{2})?$/)
     }
   })
+
+  test('should provide accessible course builder interface', async ({ page }) => {
+    await helpers.login()
+    await page.goto('/courses/new')
+    
+    // Check stepper accessibility
+    const stepper = page.locator('[data-testid="course-builder-stepper"]')
+    await expect(stepper).toHaveAttribute('role', 'navigation')
+    await expect(stepper).toHaveAttribute('aria-label')
+    
+    // Check step indicators
+    const steps = stepper.locator('[data-testid^="step-"]')
+    const stepCount = await steps.count()
+    
+    for (let i = 0; i < stepCount; i++) {
+      const step = steps.nth(i)
+      await expect(step).toHaveAttribute('aria-current')
+      await expect(step).toHaveAttribute('aria-label')
+    }
+    
+    // Check file upload accessibility
+    await page.click('[data-testid="upload-button"]')
+    const fileInput = page.locator('[data-testid="file-input"]')
+    await expect(fileInput).toHaveAttribute('aria-label')
+    
+    // Check drag and drop region
+    const dropZone = page.locator('[data-testid="drop-zone"]')
+    await expect(dropZone).toHaveAttribute('role', 'region')
+    await expect(dropZone).toHaveAttribute('aria-label')
+    
+    // Test keyboard navigation through builder steps
+    await page.keyboard.press('Tab')
+    await expect(page.locator('[data-testid="next-step-button"]')).toBeFocused()
+    
+    // Check form field associations
+    const titleInput = page.locator('[data-testid="course-title-input"]')
+    const titleLabel = page.locator('label[for="course-title"]')
+    await expect(titleLabel).toBeVisible()
+    await expect(titleInput).toHaveAttribute('id', 'course-title')
+  })
+
+  test('should provide accessible document processing feedback', async ({ page }) => {
+    await helpers.login()
+    await page.goto('/courses/new')
+    
+    // Upload a document
+    await page.click('[data-testid="upload-button"]')
+    await helpers.uploadFile('[data-testid="file-input"]', '../fixtures/test-doc.pdf')
+    
+    // Check processing status announcements
+    const processingStatus = page.locator('[data-testid="processing-status"]')
+    await expect(processingStatus).toHaveAttribute('role', 'status')
+    await expect(processingStatus).toHaveAttribute('aria-live', 'polite')
+    
+    // Check progress indicators
+    const progressBar = page.locator('[data-testid="upload-progress"]')
+    await expect(progressBar).toHaveAttribute('role', 'progressbar')
+    await expect(progressBar).toHaveAttribute('aria-valuenow')
+    await expect(progressBar).toHaveAttribute('aria-valuemin', '0')
+    await expect(progressBar).toHaveAttribute('aria-valuemax', '100')
+    
+    // Check quality score accessibility
+    const qualityScore = page.locator('[data-testid="quality-score"]')
+    if (await qualityScore.isVisible()) {
+      await expect(qualityScore).toHaveAttribute('aria-label')
+      const score = await qualityScore.getAttribute('aria-valuenow')
+      expect(score).toBeTruthy()
+    }
+  })
+
+  test('should provide accessible RAG search interface', async ({ page }) => {
+    await helpers.login()
+    await page.goto('/courses/course-123/edit')
+    
+    // Check search input accessibility
+    const searchInput = page.locator('[data-testid="rag-search-input"]')
+    await expect(searchInput).toHaveAttribute('role', 'searchbox')
+    await expect(searchInput).toHaveAttribute('aria-label')
+    
+    // Perform search
+    await searchInput.fill('machine learning')
+    await page.click('[data-testid="search-button"]')
+    
+    // Check search results accessibility
+    const resultsContainer = page.locator('[data-testid="search-results"]')
+    await expect(resultsContainer).toHaveAttribute('role', 'region')
+    await expect(resultsContainer).toHaveAttribute('aria-label')
+    await expect(resultsContainer).toHaveAttribute('aria-live', 'polite')
+    
+    // Check individual result accessibility
+    const firstResult = page.locator('[data-testid^="search-result-"]').first()
+    if (await firstResult.isVisible()) {
+      await expect(firstResult).toHaveAttribute('role', 'article')
+      
+      // Check relevance score
+      const scoreElement = firstResult.locator('[data-testid="relevance-score"]')
+      if (await scoreElement.isVisible()) {
+        await expect(scoreElement).toHaveAttribute('aria-label')
+      }
+    }
+    
+    // Check filter controls
+    const filterButton = page.locator('[data-testid="search-filters-button"]')
+    if (await filterButton.isVisible()) {
+      await expect(filterButton).toHaveAttribute('aria-expanded')
+      await expect(filterButton).toHaveAttribute('aria-controls')
+    }
+  })
+
+  test('should provide accessible export interface', async ({ page }) => {
+    await helpers.login()
+    await page.goto('/courses/course-123')
+    
+    // Open export modal
+    await page.click('[data-testid="export-button"]')
+    
+    // Check modal dialog accessibility
+    const exportModal = page.locator('[data-testid="export-modal"]')
+    await expect(exportModal).toHaveAttribute('role', 'dialog')
+    await expect(exportModal).toHaveAttribute('aria-modal', 'true')
+    await expect(exportModal).toHaveAttribute('aria-labelledby')
+    
+    // Check format selection
+    const formatOptions = page.locator('[data-testid^="export-format-"]')
+    const formatCount = await formatOptions.count()
+    
+    for (let i = 0; i < formatCount; i++) {
+      const option = formatOptions.nth(i)
+      await expect(option).toHaveAttribute('role', 'radio')
+      await expect(option).toHaveAttribute('aria-label')
+    }
+    
+    // Check export button
+    const confirmButton = page.locator('[data-testid="confirm-export"]')
+    await expect(confirmButton).toHaveAttribute('aria-label')
+    
+    // Test keyboard navigation
+    await page.keyboard.press('Tab')
+    const focusedElement = await page.locator(':focus').first()
+    const isInsideModal = await focusedElement.evaluate((el) => {
+      const modal = document.querySelector('[data-testid="export-modal"]')
+      return modal?.contains(el) || false
+    })
+    expect(isInsideModal).toBe(true)
+  })
+
+  test('should provide accessible progress tracking', async ({ page }) => {
+    await helpers.login()
+    
+    // Navigate to generation progress page
+    await page.goto('/generation/job-123')
+    
+    // Check progress container
+    const progressContainer = page.locator('[data-testid="generation-progress"]')
+    await expect(progressContainer).toHaveAttribute('role', 'region')
+    await expect(progressContainer).toHaveAttribute('aria-label')
+    
+    // Check progress updates
+    const progressBar = page.locator('[data-testid="progress-bar"]')
+    await expect(progressBar).toHaveAttribute('role', 'progressbar')
+    await expect(progressBar).toHaveAttribute('aria-live', 'polite')
+    
+    // Check status messages
+    const statusMessage = page.locator('[data-testid="progress-status"]')
+    await expect(statusMessage).toHaveAttribute('role', 'status')
+    await expect(statusMessage).toHaveAttribute('aria-live', 'polite')
+    
+    // Check completion announcement
+    await helpers.mockApiResponse('**/jobs/job-123', {
+      status: 'completed',
+      progress: 100
+    })
+    
+    await page.waitForSelector('[data-testid="generation-complete"]')
+    const completionMessage = page.locator('[data-testid="completion-message"]')
+    await expect(completionMessage).toHaveAttribute('role', 'alert')
+  })
+
+  test('should provide accessible collaboration features', async ({ page }) => {
+    await helpers.login()
+    await page.goto('/courses/course-123/edit')
+    
+    // Check collaborator indicators
+    const collaboratorList = page.locator('[data-testid="collaborator-list"]')
+    if (await collaboratorList.isVisible()) {
+      await expect(collaboratorList).toHaveAttribute('role', 'list')
+      await expect(collaboratorList).toHaveAttribute('aria-label')
+      
+      const collaborators = collaboratorList.locator('[data-testid^="collaborator-"]')
+      const collabCount = await collaborators.count()
+      
+      for (let i = 0; i < collabCount; i++) {
+        const collaborator = collaborators.nth(i)
+        await expect(collaborator).toHaveAttribute('role', 'listitem')
+        await expect(collaborator).toHaveAttribute('aria-label')
+      }
+    }
+    
+    // Check real-time update notifications
+    const updateNotification = page.locator('[data-testid="realtime-notification"]')
+    if (await updateNotification.isVisible()) {
+      await expect(updateNotification).toHaveAttribute('role', 'status')
+      await expect(updateNotification).toHaveAttribute('aria-live', 'polite')
+    }
+    
+    // Check activity indicators
+    const activityIndicator = page.locator('[data-testid="user-activity-indicator"]')
+    if (await activityIndicator.isVisible()) {
+      await expect(activityIndicator).toHaveAttribute('aria-label')
+    }
+  })
+
+  test('should provide accessible error recovery', async ({ page }) => {
+    await helpers.login()
+    await page.goto('/courses/new')
+    
+    // Trigger validation errors
+    await page.click('[data-testid="generate-course-button"]')
+    
+    // Check error summary
+    const errorSummary = page.locator('[data-testid="error-summary"]')
+    if (await errorSummary.isVisible()) {
+      await expect(errorSummary).toHaveAttribute('role', 'alert')
+      await expect(errorSummary).toHaveAttribute('aria-labelledby')
+      
+      // Check error links
+      const errorLinks = errorSummary.locator('a')
+      const errorCount = await errorLinks.count()
+      
+      for (let i = 0; i < errorCount; i++) {
+        const link = errorLinks.nth(i)
+        const href = await link.getAttribute('href')
+        expect(href).toMatch(/^#.+/)
+        
+        // Click should focus the field
+        await link.click()
+        const fieldId = href?.substring(1)
+        if (fieldId) {
+          await expect(page.locator(`#${fieldId}`)).toBeFocused()
+        }
+      }
+    }
+  })
+
+  test('should provide accessible data visualization', async ({ page }) => {
+    await helpers.login()
+    await page.goto('/dashboard')
+    
+    // Check chart accessibility
+    const charts = page.locator('[data-testid^="chart-"]')
+    const chartCount = await charts.count()
+    
+    for (let i = 0; i < chartCount; i++) {
+      const chart = charts.nth(i)
+      
+      // Should have accessible description
+      await expect(chart).toHaveAttribute('aria-label')
+      
+      // Check for data table alternative
+      const tableToggle = chart.locator('[data-testid="show-data-table"]')
+      if (await tableToggle.isVisible()) {
+        await tableToggle.click()
+        
+        const dataTable = chart.locator('table')
+        await expect(dataTable).toBeVisible()
+        await expect(dataTable).toHaveAttribute('aria-label')
+        
+        // Check table structure
+        const headers = dataTable.locator('th')
+        const headerCount = await headers.count()
+        expect(headerCount).toBeGreaterThan(0)
+      }
+    }
+  })
 })
 
 test.describe('Accessibility Tests - Mobile', () => {

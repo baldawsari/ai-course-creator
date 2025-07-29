@@ -268,3 +268,6 @@ export {
   mockCourseStore,
   TestProviders,
 }
+
+// Export dialog helpers
+export * from './dialog-helpers'

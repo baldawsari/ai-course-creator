@@ -52,6 +52,7 @@ export default function SettingsPage() {
   const [searchQuery, setSearchQuery] = useState('')
   const [showHistory, setShowHistory] = useState(false)
   const [showImportExport, setShowImportExport] = useState(false)
+  
 
   // Filter tabs based on search query
   const filteredTabs = SETTINGS_TABS.filter(tab =>
@@ -135,7 +136,7 @@ export default function SettingsPage() {
                       </Badge>
                     )}
                   </div>
-                  <span className="text-xs text-muted-foreground text-center hidden lg:block">
+                  <span className="text-xs hidden lg:block text-muted-foreground text-center">
                     {tab.description}
                   </span>
                 </TabsTrigger>
@@ -143,26 +144,23 @@ export default function SettingsPage() {
             })}
           </TabsList>
         </div>
-
-        {/* Tab Content */}
-        <div className="mt-6">
-          <TabsContent value="profile" className="m-0">
-            <ProfileManagement />
-          </TabsContent>
-
-          <TabsContent value="organization" className="m-0">
-            <OrganizationSettings />
-          </TabsContent>
-
-          <TabsContent value="integrations" className="m-0">
-            <IntegrationHub />
-          </TabsContent>
-
-          <TabsContent value="preferences" className="m-0">
-            <PreferencesPanel />
-          </TabsContent>
-        </div>
       </Tabs>
+
+      {/* Tab Content */}
+      <div className="mt-6" data-testid="tab-content">
+        <div style={{ display: activeTab === 'profile' ? 'block' : 'none' }} data-testid="profile-tab-content">
+          <ProfileManagement />
+        </div>
+        <div style={{ display: activeTab === 'organization' ? 'block' : 'none' }} data-testid="organization-tab-content">
+          <OrganizationSettings />
+        </div>
+        <div style={{ display: activeTab === 'integrations' ? 'block' : 'none' }} data-testid="integrations-tab-content">
+          <IntegrationHub />
+        </div>
+        <div style={{ display: activeTab === 'preferences' ? 'block' : 'none' }} data-testid="preferences-tab-content">
+          <PreferencesPanel />
+        </div>
+      </div>
 
       {/* Change History Modal */}
       {showHistory && (
