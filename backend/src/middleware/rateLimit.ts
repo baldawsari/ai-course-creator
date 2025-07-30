@@ -38,7 +38,7 @@ redisClient.on('error', (err) => {
  */
 export const defaultRateLimiter = rateLimit({
   store: new RedisStore({
-    client: redisClient,
+    sendCommand: (...args: string[]) => redisClient.sendCommand(args),
     prefix: 'rl:default:',
   }),
   windowMs: env.RATE_LIMIT_WINDOW_MS,
@@ -61,7 +61,7 @@ export const defaultRateLimiter = rateLimit({
  */
 export const authRateLimiter = rateLimit({
   store: new RedisStore({
-    client: redisClient,
+    sendCommand: (...args: string[]) => redisClient.sendCommand(args),
     prefix: 'rl:auth:',
   }),
   windowMs: 15 * 60 * 1000, // 15 minutes
@@ -81,7 +81,7 @@ export const authRateLimiter = rateLimit({
  */
 export const uploadRateLimiter = rateLimit({
   store: new RedisStore({
-    client: redisClient,
+    sendCommand: (...args: string[]) => redisClient.sendCommand(args),
     prefix: 'rl:upload:',
   }),
   windowMs: 60 * 60 * 1000, // 1 hour
@@ -100,7 +100,7 @@ export const uploadRateLimiter = rateLimit({
  */
 export const generationRateLimiter = rateLimit({
   store: new RedisStore({
-    client: redisClient,
+    sendCommand: (...args: string[]) => redisClient.sendCommand(args),
     prefix: 'rl:generation:',
   }),
   windowMs: 60 * 60 * 1000, // 1 hour
@@ -114,7 +114,7 @@ export const generationRateLimiter = rateLimit({
   legacyHeaders: false,
   keyGenerator: (req: Request) => {
     // Use user ID if authenticated, otherwise use IP
-    return req.user?.id || req.ip;
+    return req.user?.id || req.ip || 'anonymous';
   },
   skip: (req: Request) => {
     // Skip rate limiting for admin users
@@ -142,7 +142,7 @@ export const createDynamicRateLimiter = (options: {
 
   return rateLimit({
     store: new RedisStore({
-      client: redisClient,
+      sendCommand: (...args: string[]) => redisClient.sendCommand(args),
       prefix,
     }),
     windowMs,
@@ -160,7 +160,7 @@ export const createDynamicRateLimiter = (options: {
       }
     },
     keyGenerator: (req: Request) => {
-      return req.user?.id || req.ip;
+      return req.user?.id || req.ip || 'anonymous';
     },
     handler: (req: Request, res: Response) => {
       const userRole = req.user?.role || 'anonymous';
@@ -185,7 +185,7 @@ export const createDynamicRateLimiter = (options: {
  */
 export const ipRateLimiter = rateLimit({
   store: new RedisStore({
-    client: redisClient,
+    sendCommand: (...args: string[]) => redisClient.sendCommand(args),
     prefix: 'rl:ip:',
   }),
   windowMs: 15 * 60 * 1000, // 15 minutes
@@ -197,7 +197,7 @@ export const ipRateLimiter = rateLimit({
   },
   standardHeaders: true,
   legacyHeaders: false,
-  keyGenerator: (req: Request) => req.ip,
+  keyGenerator: (req: Request) => req.ip || 'anonymous',
 });
 
 /**
@@ -211,7 +211,7 @@ export const createCustomRateLimiter = (
 ) => {
   return rateLimit({
     store: new RedisStore({
-      client: redisClient,
+      sendCommand: (...args: string[]) => redisClient.sendCommand(args),
       prefix: `rl:${name}:`,
     }),
     windowMs,
