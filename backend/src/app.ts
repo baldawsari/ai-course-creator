@@ -97,6 +97,10 @@ const authRoutes = require('./routes/auth');
 const uploadRoutes = require('./routes/upload');
 const coursesRoutes = require('./routes/courses');
 const generationRoutes = require('./routes/generation');
+const exportRoutes = require('./routes/export');
+const sessionsRoutes = require('./routes/sessions');
+const profileRoutes = require('./routes/profile');
+const dashboardRoutes = require('./routes/dashboard');
 
 // Health check endpoint
 app.get('/health', asyncHandler(async (_req: Request, res: Response) => {
@@ -116,18 +120,10 @@ app.use('/api/auth', authRoutes);
 app.use('/api/upload', limiter, uploadRoutes);
 app.use('/api/courses', coursesRoutes);
 app.use('/api/generation', limiter, generationRoutes);
-
-// Export route (new)
-app.use('/api/export', limiter, asyncHandler(async (_req: Request, res: Response) => {
-  res.json({
-    success: true,
-    message: 'Export endpoints available',
-    endpoints: {
-      'GET /api/export/course/:id': 'Export course as HTML',
-      'POST /api/export/course/:id/pdf': 'Export course as PDF',
-    }
-  });
-}));
+app.use('/api/export', limiter, exportRoutes);
+app.use('/api/sessions', sessionsRoutes);
+app.use('/api/profile', profileRoutes);
+app.use('/api/dashboard', dashboardRoutes);
 
 // API documentation endpoint
 app.get('/api', (_req: Request, res: Response) => {
@@ -141,8 +137,11 @@ app.get('/api', (_req: Request, res: Response) => {
         auth: '/api/auth',
         upload: '/api/upload',
         courses: '/api/courses',
+        sessions: '/api/sessions',
         generation: '/api/generation',
         export: '/api/export',
+        profile: '/api/profile',
+        dashboard: '/api/dashboard',
         health: '/health'
       }
     },
