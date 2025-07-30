@@ -1,3 +1,6 @@
+// Reset module registry before running tests
+jest.resetModules();
+
 // Global Jest setup
 global.beforeAll = beforeAll;
 global.afterAll = afterAll;
