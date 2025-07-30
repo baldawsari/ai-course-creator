@@ -367,13 +367,13 @@ export const rateLimitByUser = (options?: {
     legacyHeaders: false,
     keyGenerator: (req: Request) => {
       // Use user ID if authenticated, otherwise use IP
-      return req.user?.id || req.ip;
+      return req.user?.id || req.ip || 'anonymous';
     },
     skip: (req: Request) => {
       // Skip rate limiting for admin users
       return req.user?.role === 'admin';
     },
-    handler: (req: Request, res: Response) => {
+    handler: (_req: Request, res: Response) => {
       const resetTime = new Date(Date.now() + (options?.windowMs || 15 * 60 * 1000));
       
       res.status(429).json({
@@ -497,7 +497,7 @@ export const requireResourceOwnership = (
   resourceType: 'course' | 'resource' | 'session',
   paramName: string = 'id'
 ) => {
-  return async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  return async (req: Request, _res: Response, next: NextFunction): Promise<void> => {
     if (!req.user) {
       throw new AuthenticationError('Authentication required');
     }
@@ -559,3 +559,4 @@ export const getUserById = async (userId: string): Promise<AuthenticatedUser | n
 
 // Export middleware as named exports
 export const auth = authenticateUser;
+export const authenticateToken = authenticateUser;
