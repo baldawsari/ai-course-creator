@@ -53,6 +53,17 @@ function validateFile(file, options = {}) {
       return { valid: false, errors, warnings };
     }
 
+    // Check required file properties
+    if (!file.mimetype) {
+      errors.push('File mimetype is required');
+    }
+    if (!file.originalname) {
+      errors.push('File originalname is required');
+    }
+    if (file.size === undefined || file.size === null) {
+      errors.push('File size is required');
+    }
+
     // Validate file size
     const maxSize = options.maxSize || MAX_FILE_SIZE;
     const minSize = options.minSize || MIN_FILE_SIZE;

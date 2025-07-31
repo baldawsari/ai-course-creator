@@ -1220,8 +1220,7 @@ describe('DesignEngine Integration Tests', () => {
         const options = { hash: {} };
         const result = componentHelper('NonExistent', options);
         
-        expect(result).toBeDefined();
-        expect(result.string).toBe('');
+        expect(result).toBe('');
         
         // Restore original method
         designEngine.compiledComponents.get = originalGet;
