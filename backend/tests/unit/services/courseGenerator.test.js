@@ -1,4 +1,8 @@
-// Mock dependencies before importing
+// Clear all mocks and reset modules before importing
+jest.clearAllMocks();
+jest.resetModules();
+
+// Create mocks
 let mockSupabaseChain;
 let mockQueue;
 let mockProcessCallback;
@@ -25,56 +29,42 @@ jest.mock('bull', () => {
   });
 });
 
+// Create supabase mock inline
 jest.mock('../../../src/config/database', () => {
-  const chainMock = {
-    from: jest.fn(),
-    select: jest.fn(),
-    insert: jest.fn(),
-    update: jest.fn(),
-    eq: jest.fn(),
-    single: jest.fn(),
-    gte: jest.fn(),
-    lte: jest.fn(),
-    in: jest.fn(),
-    order: jest.fn()
+  const mockChain = {
+    from: jest.fn().mockReturnThis(),
+    select: jest.fn().mockReturnThis(),
+    insert: jest.fn().mockReturnThis(),
+    update: jest.fn().mockReturnThis(),
+    eq: jest.fn().mockReturnThis(),
+    neq: jest.fn().mockReturnThis(),
+    gt: jest.fn().mockReturnThis(),
+    gte: jest.fn().mockReturnThis(),
+    lt: jest.fn().mockReturnThis(),
+    lte: jest.fn().mockReturnThis(),
+    in: jest.fn().mockReturnThis(),
+    order: jest.fn().mockReturnThis(),
+    single: jest.fn().mockResolvedValue({ data: null, error: null }),
+    maybeSingle: jest.fn().mockResolvedValue({ data: null, error: null })
   };
   
-  // Setup chainable methods
-  Object.keys(chainMock).forEach(key => {
-    if (typeof chainMock[key] === 'function') {
-      chainMock[key].mockReturnValue(chainMock);
+  // Store globally for test access
+  global.mockSupabaseChain = mockChain;
+  
+  return { 
+    get supabaseAdmin() {
+      return mockChain;
     }
-  });
-  
-  // Store reference for tests
-  if (!global.mockSupabaseChain) {
-    global.mockSupabaseChain = chainMock;
-  }
-  
-  return { supabaseAdmin: chainMock };
+  };
 });
 
 jest.mock('../../../src/config/database-simple', () => {
   return { 
     get supabaseAdmin() {
-      return global.mockSupabaseChain || {
-        from: jest.fn().mockReturnThis(),
-        select: jest.fn().mockReturnThis(),
-        insert: jest.fn().mockReturnThis(),
-        update: jest.fn().mockReturnThis(),
-        eq: jest.fn().mockReturnThis(),
-        single: jest.fn().mockReturnThis(),
-        gte: jest.fn().mockReturnThis(),
-        lte: jest.fn().mockReturnThis(),
-        in: jest.fn().mockReturnThis(),
-        order: jest.fn().mockReturnThis()
-      };
+      return global.mockSupabaseChain;
     }
   };
 });
-
-// Get reference after mocks are set up
-mockSupabaseChain = global.mockSupabaseChain;
 
 jest.mock('../../../src/config/vectorStore', () => ({
   getQdrantClient: jest.fn(),
@@ -106,13 +96,17 @@ describe('CourseGenerator Service', () => {
   let originalProcessGenerationJob;
 
   beforeAll(() => {
-    // Store original method
-    originalProcessGenerationJob = courseGenerator.processGenerationJob;
-    // Get global references
+    // Get global references after mocks are set up
     mockQueue = global.mockQueue;
     mockProcessCallback = global.mockProcessCallback;
     mockCompletedCallback = global.mockCompletedCallback;
     mockFailedCallback = global.mockFailedCallback;
+    mockSupabaseChain = global.mockSupabaseChain;
+    
+    // Store original method if it exists
+    if (courseGenerator && courseGenerator.processGenerationJob) {
+      originalProcessGenerationJob = courseGenerator.processGenerationJob;
+    }
   });
 
   afterAll(() => {
@@ -126,7 +120,7 @@ describe('CourseGenerator Service', () => {
     jest.clearAllMocks();
     
     // Get mock reference
-    mockSupabaseChain = global.mockSupabaseChain || supabaseAdmin;
+    mockSupabaseChain = global.mockSupabaseChain;
     
     // Reset all supabase mocks to their default behavior
     if (mockSupabaseChain) {
@@ -136,6 +130,13 @@ describe('CourseGenerator Service', () => {
           mockSupabaseChain[key].mockReturnValue(mockSupabaseChain);
         }
       });
+      
+      // Set default resolved values for terminal methods
+      mockSupabaseChain.single.mockResolvedValue({ data: null, error: null });
+      mockSupabaseChain.maybeSingle.mockResolvedValue({ data: null, error: null });
+      if (!mockSupabaseChain.then) {
+        mockSupabaseChain.then = jest.fn((cb) => cb({ data: [], error: null }));
+      }
     }
   });
 
@@ -490,11 +491,11 @@ describe('CourseGenerator Service', () => {
         }
       };
       
-      // Mock resources fetch
-      supabaseAdmin.from().select.mockResolvedValueOnce({
+      // Mock the Supabase chain to return resources
+      mockSupabaseChain.order.mockResolvedValueOnce({
         data: [
-          { id: 'res-1', content: 'Resource 1', quality_score: 85 },
-          { id: 'res-2', content: 'Resource 2', quality_score: 90 }
+          { id: 'res-1', content: 'Resource 1', quality_score: 85, course_id: 'course-123', status: 'processed' },
+          { id: 'res-2', content: 'Resource 2', quality_score: 90, course_id: 'course-123', status: 'processed' }
         ],
         error: null
       });
@@ -512,8 +513,8 @@ describe('CourseGenerator Service', () => {
         ]
       });
       
-      // Mock save
-      supabaseAdmin.from().insert.mockResolvedValueOnce({
+      // Mock insert for saving the course
+      mockSupabaseChain.insert.mockResolvedValueOnce({
         data: { id: 'generated-123' },
         error: null
       });
