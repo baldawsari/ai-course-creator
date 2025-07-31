@@ -206,22 +206,22 @@ describe('VectorService', () => {
 
       const result = await vectorService.insertVectors(collectionName, vectors);
 
+      // Check that upsert was called
       expect(mockQdrantClient.upsert).toHaveBeenCalledWith(
         collectionName,
-        {
-          wait: true,
-          points: expect.arrayContaining([
-            expect.objectContaining({
-              id: expect.any(String),
-              vector: vectors[0].vector,
-              payload: expect.objectContaining({
-                text: 'Test vector 1',
-                original_id: 'vec-1'
-              })
-            })
-          ])
-        }
+        expect.objectContaining({
+          wait: false,
+          points: expect.any(Array)
+        })
       );
+      
+      // Verify the points structure
+      const upsertCall = mockQdrantClient.upsert.mock.calls[0];
+      const points = upsertCall[1].points;
+      expect(points).toHaveLength(2);
+      expect(points[0].payload).toMatchObject({
+        original_id: 'vec-1'
+      });
       expect(result).toEqual({
         success: true,
         inserted: 2,

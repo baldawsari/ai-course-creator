@@ -65,18 +65,34 @@ jest.mock('../../../src/utils/async', () => ({
 }));
 
 // Mock supabase
-jest.mock('../../../src/config/database', () => ({
-  supabaseAdmin: {
-    from: jest.fn(() => ({
-      select: jest.fn(() => ({
-        eq: jest.fn(() => ({
-          single: jest.fn().mockResolvedValue({ data: null, error: null }),
-          order: jest.fn().mockResolvedValue({ data: [], error: null })
-        }))
-      }))
-    }))
-  }
-}));
+
+jest.mock('../../../src/config/database', () => {
+  // Need to define mockSupabaseChain inside the mock factory
+  const chain = {
+    from: jest.fn(),
+    select: jest.fn(),
+    eq: jest.fn(),
+    single: jest.fn(),
+    order: jest.fn(),
+    limit: jest.fn(),
+    in: jest.fn()
+  };
+  
+  // Make chain methods return 'this' for chaining
+  chain.from.mockReturnValue(chain);
+  chain.select.mockReturnValue(chain);
+  chain.eq.mockReturnValue(chain);
+  chain.limit.mockReturnValue(chain);
+  chain.in.mockReturnValue(chain);
+  chain.order.mockReturnValue(chain);
+  
+  // Store reference globally
+  global.mockSupabaseChain = chain;
+  
+  return {
+    supabaseAdmin: chain
+  };
+});
 
 describe('HTMLExporter', () => {
   let htmlExporter;
@@ -143,16 +159,20 @@ describe('HTMLExporter', () => {
     };
 
     beforeEach(() => {
-      const { supabaseAdmin } = require('../../../src/config/database');
+      // Reset all mocks
+      jest.clearAllMocks();
       
-      // Mock course fetch
-      supabaseAdmin.from().select().eq().single.mockResolvedValue({
+      // Get the global mock reference
+      const mockChain = global.mockSupabaseChain;
+      
+      // Mock course fetch - when fetching course details
+      mockChain.single.mockResolvedValueOnce({
         data: mockCourse,
         error: null
       });
       
-      // Mock sessions fetch
-      supabaseAdmin.from().select().eq().order.mockResolvedValue({
+      // Mock sessions fetch - when fetching sessions
+      mockChain.order.mockResolvedValueOnce({
         data: mockCourse.sessions,
         error: null
       });

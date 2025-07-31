@@ -256,7 +256,12 @@ class VisualIntelligence {
         context
       );
 
-      // Cache the result
+      // Cache the result with size limit
+      if (this.visualCache.size >= 100) {
+        // Remove oldest entry
+        const firstKey = this.visualCache.keys().next().value;
+        this.visualCache.delete(firstKey);
+      }
       this.visualCache.set(cacheKey, recommendations);
 
       return recommendations;
@@ -449,7 +454,7 @@ Provide a JSON response with:
     const elements = recommendations.primaryVisual?.elements || 
       this.extractListElements(content);
     const colorScheme = recommendations.primaryVisual?.colorScheme || 
-      this.colorPalettes[recommendations.theme];
+      this.colorPalettes[recommendations.theme || 'default'];
     
     const width = options.width || 800;
     const height = options.height || 600;
@@ -553,7 +558,7 @@ Provide a JSON response with:
     const steps = recommendations.primaryVisual?.elements || 
       this.extractProcessSteps(content);
     const colorScheme = recommendations.primaryVisual?.colorScheme || 
-      this.colorPalettes[recommendations.theme];
+      this.colorPalettes[recommendations.theme || 'default'];
     
     const width = options.width || 800;
     const height = options.height || 600;
@@ -659,7 +664,7 @@ Provide a JSON response with:
     const data = recommendations.primaryVisual?.elements || 
       this.extractDataPoints(content);
     const colorScheme = recommendations.primaryVisual?.colorScheme || 
-      this.colorPalettes[recommendations.theme];
+      this.colorPalettes[recommendations.theme || 'default'];
     
     const width = options.width || 800;
     const height = options.height || 400;
@@ -678,8 +683,134 @@ Provide a JSON response with:
     
     // Determine chart type based on data
     const hasNumericValues = data.every(d => !isNaN(parseFloat(d.value)));
+    const hasPercentages = content.includes('%') && data.length > 0;
+    const hasTimeLabels = data.some(d => /^(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)/i.test(d.label));
     
-    if (hasNumericValues) {
+    if (hasPercentages && data.length <= 6) {
+      // Pie chart for percentage data
+      const centerX = width / 2;
+      const centerY = height / 2;
+      const radius = Math.min(width, height) / 2 - padding;
+      
+      let currentAngle = -90; // Start from top
+      const total = data.reduce((sum, item) => sum + parseFloat(item.value), 0);
+      
+      data.forEach((item, index) => {
+        const value = parseFloat(item.value);
+        const angle = (value / total) * 360;
+        const endAngle = currentAngle + angle;
+        
+        const startRad = (currentAngle * Math.PI) / 180;
+        const endRad = (endAngle * Math.PI) / 180;
+        
+        const x1 = centerX + radius * Math.cos(startRad);
+        const y1 = centerY + radius * Math.sin(startRad);
+        const x2 = centerX + radius * Math.cos(endRad);
+        const y2 = centerY + radius * Math.sin(endRad);
+        
+        const largeArc = angle > 180 ? 1 : 0;
+        
+        const color = this.getColorFromPalette(colorScheme, index);
+        
+        svg += `
+          <path d="M ${centerX} ${centerY} L ${x1} ${y1} A ${radius} ${radius} 0 ${largeArc} 1 ${x2} ${y2} Z"
+                fill="${color}"
+                opacity="0.8">
+            <animate attributeName="opacity" 
+                     from="0" to="0.8" 
+                     dur="0.5s" 
+                     begin="${index * 0.1}s" />
+          </path>
+        `;
+        
+        // Label
+        const midAngle = (currentAngle + endAngle) / 2;
+        const midRad = (midAngle * Math.PI) / 180;
+        const labelX = centerX + (radius * 0.7) * Math.cos(midRad);
+        const labelY = centerY + (radius * 0.7) * Math.sin(midRad);
+        
+        svg += `
+          <text x="${labelX}" y="${labelY}" 
+                text-anchor="middle" 
+                font-size="14" 
+                fill="white"
+                font-weight="bold">
+            ${this.escapeXml(item.label)}
+          </text>
+        `;
+        
+        currentAngle = endAngle;
+      });
+    } else if (hasTimeLabels) {
+      // Line chart for time series
+      const chartWidth = width - padding * 2;
+      const chartHeight = height - padding * 2;
+      const maxValue = Math.max(...data.map(d => parseFloat(d.value)));
+      const minValue = Math.min(...data.map(d => parseFloat(d.value)));
+      const valueRange = maxValue - minValue || 1;
+      
+      // Y-axis
+      svg += `<line x1="${padding}" y1="${padding}" x2="${padding}" y2="${height - padding}" stroke="${colorScheme.text}" stroke-width="2" />`;
+      
+      // X-axis
+      svg += `<line x1="${padding}" y1="${height - padding}" x2="${width - padding}" y2="${height - padding}" stroke="${colorScheme.text}" stroke-width="2" />`;
+      
+      // Create line path
+      let pathData = 'M';
+      const points = [];
+      
+      data.forEach((item, index) => {
+        const x = padding + (index / (data.length - 1)) * chartWidth;
+        const y = height - padding - ((parseFloat(item.value) - minValue) / valueRange) * chartHeight;
+        points.push({ x, y, label: item.label, value: item.value });
+        
+        if (index === 0) {
+          pathData += ` ${x} ${y}`;
+        } else {
+          pathData += ` L ${x} ${y}`;
+        }
+      });
+      
+      // Draw line
+      svg += `
+        <path d="${pathData}" 
+              stroke="${colorScheme.primary}" 
+              stroke-width="3" 
+              fill="none" 
+              stroke-linejoin="round" />
+      `;
+      
+      // Draw points and labels
+      points.forEach((point, index) => {
+        svg += `
+          <circle cx="${point.x}" cy="${point.y}" 
+                  r="5" 
+                  fill="${colorScheme.accent}" 
+                  stroke="${colorScheme.primary}" 
+                  stroke-width="2" />
+        `;
+        
+        // Value label
+        svg += `
+          <text x="${point.x}" y="${point.y - 10}" 
+                text-anchor="middle" 
+                font-size="12" 
+                fill="${colorScheme.text}">
+            ${point.value}
+          </text>
+        `;
+        
+        // Month label
+        svg += `
+          <text x="${point.x}" y="${height - padding + 20}" 
+                text-anchor="middle" 
+                font-size="12" 
+                fill="${colorScheme.text}">
+            ${this.escapeXml(point.label)}
+          </text>
+        `;
+      });
+    } else if (hasNumericValues) {
       // Bar chart for numeric data
       const maxValue = Math.max(...data.map(d => parseFloat(d.value)));
       const barWidth = (width - padding * 2) / data.length - 10;
@@ -817,7 +948,7 @@ Provide a JSON response with:
     const events = recommendations.primaryVisual?.elements || 
       this.extractTimelineEvents(content);
     const colorScheme = recommendations.primaryVisual?.colorScheme || 
-      this.colorPalettes[recommendations.theme];
+      this.colorPalettes[recommendations.theme || 'default'];
     
     const width = options.width || 800;
     const height = options.height || 400;
@@ -915,7 +1046,7 @@ Provide a JSON response with:
     const items = recommendations.primaryVisual?.elements || 
       this.extractComparisonItems(content);
     const colorScheme = recommendations.primaryVisual?.colorScheme || 
-      this.colorPalettes[recommendations.theme];
+      this.colorPalettes[recommendations.theme || 'default'];
     
     const width = options.width || 800;
     const height = options.height || 500;
@@ -1005,7 +1136,7 @@ Provide a JSON response with:
     const hierarchy = recommendations.primaryVisual?.elements || 
       this.extractHierarchy(content);
     const colorScheme = recommendations.primaryVisual?.colorScheme || 
-      this.colorPalettes[recommendations.theme];
+      this.colorPalettes[recommendations.theme || 'default'];
     
     const width = options.width || 800;
     const height = options.height || 600;
@@ -1178,7 +1309,7 @@ Provide a JSON response with:
     const events = [];
     
     // Extract years with context
-    const yearPattern = /(\d{4})\s*[-:]\s*(.+?)(?=[,\.]|$)/g;
+    const yearPattern = /(\d{4})\s*[-:]\s*(.+?)(?=\n|$)/gm;
     let match;
     while ((match = yearPattern.exec(text)) !== null) {
       events.push({
