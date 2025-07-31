@@ -777,11 +777,7 @@ export default function ExportsPage() {
                         <div className="flex-1">
                           <div className="flex items-center gap-2 mb-1">
                             <h3 className="font-medium text-gray-900 dark:text-white">{export_.courseName}</h3>
-<<<<<<< HEAD
                             <Badge className={getStatusColor(export_.status)} data-testid={`export-status-${export_.status}`}>
-=======
-                            <Badge className={getStatusColor(export_.status)} data-testid={`status-badge-${export_.status}`}>
->>>>>>> 389f190972e4b62bd0e21d4faafcdc51d290e963
                               <StatusIcon className={`w-3 h-3 mr-1 ${export_.status === 'processing' ? 'animate-spin' : ''}`} />
                               {export_.status}
                             </Badge>
