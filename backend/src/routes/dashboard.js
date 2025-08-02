@@ -1,6 +1,6 @@
 const express = require('express');
 const { supabaseAdmin } = require('../config/database');
-const { authenticateToken } = require('../middleware/auth');
+const { authenticateUser } = require('../middleware/auth');
 const { asyncHandler } = require('../middleware/errorHandling');
 const logger = require('../utils/logger');
 
@@ -9,7 +9,7 @@ const router = express.Router();
 /**
  * GET /api/dashboard/stats - Get dashboard statistics
  */
-router.get('/stats', authenticateToken, asyncHandler(async (req, res) => {
+router.get('/stats', authenticateUser, asyncHandler(async (req, res) => {
   const userId = req.user.id;
   const now = new Date();
   const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
@@ -107,7 +107,7 @@ router.get('/stats', authenticateToken, asyncHandler(async (req, res) => {
 /**
  * GET /api/dashboard/recent - Get recent courses
  */
-router.get('/recent', authenticateToken, asyncHandler(async (req, res) => {
+router.get('/recent', authenticateUser, asyncHandler(async (req, res) => {
   const { limit = 10 } = req.query;
   const maxLimit = Math.min(parseInt(limit), 50);
 
@@ -154,7 +154,7 @@ router.get('/recent', authenticateToken, asyncHandler(async (req, res) => {
 /**
  * GET /api/dashboard/activity - Get activity feed
  */
-router.get('/activity', authenticateToken, asyncHandler(async (req, res) => {
+router.get('/activity', authenticateUser, asyncHandler(async (req, res) => {
   const { limit = 20, offset = 0 } = req.query;
   const maxLimit = Math.min(parseInt(limit), 100);
   const userId = req.user.id;

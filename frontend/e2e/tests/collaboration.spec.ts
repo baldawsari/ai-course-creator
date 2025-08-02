@@ -36,7 +36,7 @@ test.describe('Real-time Collaboration', () => {
         }
         
         close() {
-          this.readyState = WebSocket.CLOSED
+          this.readyState = WebSocket.CLOSED as 3
           this.dispatchEvent(new Event('close'))
         }
       }

@@ -1,7 +1,7 @@
 const express = require('express');
 const Joi = require('joi');
 const { supabaseAdmin } = require('../config/database');
-const { authenticateToken } = require('../middleware/auth');
+const { authenticateUser } = require('../middleware/auth');
 const { asyncHandler } = require('../middleware/errorHandling');
 const logger = require('../utils/logger');
 const multer = require('multer');
@@ -62,7 +62,7 @@ const updateProfileSchema = Joi.object({
 /**
  * GET /api/profile - Get current user profile
  */
-router.get('/', authenticateToken, asyncHandler(async (req, res) => {
+router.get('/', authenticateUser, asyncHandler(async (req, res) => {
   const { data: profile, error } = await supabaseAdmin
     .from('user_profiles')
     .select(`
@@ -102,7 +102,7 @@ router.get('/', authenticateToken, asyncHandler(async (req, res) => {
 /**
  * PUT /api/profile - Update profile
  */
-router.put('/', authenticateToken, asyncHandler(async (req, res) => {
+router.put('/', authenticateUser, asyncHandler(async (req, res) => {
   const { error: validationError, value: validatedData } = updateProfileSchema.validate(req.body);
   
   if (validationError) {
@@ -156,7 +156,7 @@ router.put('/', authenticateToken, asyncHandler(async (req, res) => {
 /**
  * POST /api/profile/avatar - Upload avatar
  */
-router.post('/avatar', authenticateToken, upload.single('avatar'), asyncHandler(async (req, res) => {
+router.post('/avatar', authenticateUser, upload.single('avatar'), asyncHandler(async (req, res) => {
   if (!req.file) {
     return res.status(400).json({ error: 'No file uploaded' });
   }
@@ -211,7 +211,7 @@ router.post('/avatar', authenticateToken, upload.single('avatar'), asyncHandler(
 /**
  * GET /api/profile/usage - Get usage statistics
  */
-router.get('/usage', authenticateToken, asyncHandler(async (req, res) => {
+router.get('/usage', authenticateUser, asyncHandler(async (req, res) => {
   const userId = req.user.id;
 
   // Get course statistics

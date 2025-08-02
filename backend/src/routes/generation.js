@@ -1,7 +1,7 @@
 const express = require('express');
 const Joi = require('joi');
 const { supabaseAdmin } = require('../config/database');
-const { authenticateToken, requirePermission } = require('../middleware/auth');
+const { authenticateUser, requireAuth } = require('../middleware/auth');
 const { asyncHandler } = require('../middleware/errorHandling');
 const courseGenerator = require('../services/courseGenerator');
 const ragPipeline = require('../services/ragPipeline');
@@ -59,7 +59,7 @@ const regenerateSchema = Joi.object({
 /**
  * POST /generation/analyze - Analyze uploaded content
  */
-router.post('/analyze', authenticateToken, requirePermission('generation', 'create'), asyncHandler(async (req, res) => {
+router.post('/analyze', authenticateUser, asyncHandler(async (req, res) => {
   const { error: validationError, value: validatedData } = analyzeContentSchema.validate(req.body);
   
   if (validationError) {
@@ -152,7 +152,7 @@ router.post('/analyze', authenticateToken, requirePermission('generation', 'crea
 /**
  * POST /generation/generate - Start course generation
  */
-router.post('/generate', authenticateToken, requirePermission('generation', 'create'), asyncHandler(async (req, res) => {
+router.post('/generate', authenticateUser, asyncHandler(async (req, res) => {
   const { error: validationError, value: validatedData } = generateCourseSchema.validate(req.body);
   
   if (validationError) {
@@ -229,7 +229,7 @@ router.post('/generate', authenticateToken, requirePermission('generation', 'cre
 /**
  * GET /generation/status/:jobId - Check generation status
  */
-router.get('/status/:jobId', authenticateToken, asyncHandler(async (req, res) => {
+router.get('/status/:jobId', authenticateUser, asyncHandler(async (req, res) => {
   const { jobId } = req.params;
 
   try {
@@ -264,7 +264,7 @@ router.get('/status/:jobId', authenticateToken, asyncHandler(async (req, res) =>
 /**
  * GET /generation/result/:jobId - Get generation result
  */
-router.get('/result/:jobId', authenticateToken, asyncHandler(async (req, res) => {
+router.get('/result/:jobId', authenticateUser, asyncHandler(async (req, res) => {
   const { jobId } = req.params;
 
   try {
@@ -331,7 +331,7 @@ router.get('/result/:jobId', authenticateToken, asyncHandler(async (req, res) =>
 /**
  * POST /generation/regenerate - Regenerate specific sections
  */
-router.post('/regenerate', authenticateToken, requirePermission('generation', 'create'), asyncHandler(async (req, res) => {
+router.post('/regenerate', authenticateUser, asyncHandler(async (req, res) => {
   const { error: validationError, value: validatedData } = regenerateSchema.validate(req.body);
   
   if (validationError) {
@@ -417,7 +417,7 @@ router.post('/regenerate', authenticateToken, requirePermission('generation', 'c
 /**
  * GET /generation/metrics - Get generation metrics and analytics
  */
-router.get('/metrics', authenticateToken, requirePermission('generation', 'read'), asyncHandler(async (req, res) => {
+router.get('/metrics', authenticateUser, asyncHandler(async (req, res) => {
   const { 
     timeframe = '7d',
     courseId,

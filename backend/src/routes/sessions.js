@@ -1,7 +1,7 @@
 const express = require('express');
 const Joi = require('joi');
 const { supabaseAdmin } = require('../config/database');
-const { authenticateToken, requirePermission } = require('../middleware/auth');
+const { authenticateUser, requireAuth } = require('../middleware/auth');
 const { asyncHandler } = require('../middleware/errorHandling');
 const logger = require('../utils/logger');
 
@@ -40,7 +40,7 @@ const activitySchema = Joi.object({
 /**
  * PUT /api/sessions/:id - Update session
  */
-router.put('/:id', authenticateToken, requirePermission('courses', 'update'), asyncHandler(async (req, res) => {
+router.put('/:id', authenticateUser, asyncHandler(async (req, res) => {
   const { id: sessionId } = req.params;
   
   const { error: validationError, value: validatedData } = updateSessionSchema.validate(req.body);
@@ -97,7 +97,7 @@ router.put('/:id', authenticateToken, requirePermission('courses', 'update'), as
 /**
  * DELETE /api/sessions/:id - Delete session
  */
-router.delete('/:id', authenticateToken, requirePermission('courses', 'delete'), asyncHandler(async (req, res) => {
+router.delete('/:id', authenticateUser, asyncHandler(async (req, res) => {
   const { id: sessionId } = req.params;
 
   // Check session exists and user has permission
@@ -146,7 +146,7 @@ router.delete('/:id', authenticateToken, requirePermission('courses', 'delete'),
 /**
  * PUT /api/sessions/:id/reorder - Reorder sessions
  */
-router.put('/:id/reorder', authenticateToken, requirePermission('courses', 'update'), asyncHandler(async (req, res) => {
+router.put('/:id/reorder', authenticateUser, asyncHandler(async (req, res) => {
   const { id: sessionId } = req.params;
   const { newPosition } = req.body;
 
@@ -248,7 +248,7 @@ router.put('/:id/reorder', authenticateToken, requirePermission('courses', 'upda
 /**
  * GET /api/sessions/:sessionId/activities - List session activities
  */
-router.get('/:sessionId/activities', authenticateToken, asyncHandler(async (req, res) => {
+router.get('/:sessionId/activities', authenticateUser, asyncHandler(async (req, res) => {
   const { sessionId } = req.params;
 
   // Get session and check permissions
@@ -284,7 +284,7 @@ router.get('/:sessionId/activities', authenticateToken, asyncHandler(async (req,
 /**
  * POST /api/sessions/:sessionId/activities - Create activity
  */
-router.post('/:sessionId/activities', authenticateToken, requirePermission('courses', 'update'), asyncHandler(async (req, res) => {
+router.post('/:sessionId/activities', authenticateUser, asyncHandler(async (req, res) => {
   const { sessionId } = req.params;
   
   const { error: validationError, value: validatedData } = activitySchema.validate(req.body);
@@ -355,7 +355,7 @@ router.post('/:sessionId/activities', authenticateToken, requirePermission('cour
 /**
  * PUT /api/activities/:id - Update activity
  */
-router.put('/activities/:id', authenticateToken, requirePermission('courses', 'update'), asyncHandler(async (req, res) => {
+router.put('/activities/:id', authenticateUser, asyncHandler(async (req, res) => {
   const { id: activityId } = req.params;
   
   const { error: validationError, value: validatedData } = activitySchema.validate(req.body);
@@ -427,7 +427,7 @@ router.put('/activities/:id', authenticateToken, requirePermission('courses', 'u
 /**
  * DELETE /api/activities/:id - Delete activity
  */
-router.delete('/activities/:id', authenticateToken, requirePermission('courses', 'delete'), asyncHandler(async (req, res) => {
+router.delete('/activities/:id', authenticateUser, asyncHandler(async (req, res) => {
   const { id: activityId } = req.params;
 
   // Find session containing this activity

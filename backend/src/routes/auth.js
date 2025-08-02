@@ -1,17 +1,13 @@
 const express = require('express');
 const Joi = require('joi');
-const jwt = require('jsonwebtoken');
 const { supabaseAdmin } = require('../config/database');
 const { 
   authenticateUser, 
   requireAuth, 
   refreshSession,
-  rateLimitByUser,
-  AuthenticationError,
-  InvalidTokenError
+  rateLimitByUser 
 } = require('../middleware/auth');
 const { asyncHandler } = require('../middleware/errorHandling');
-const { env } = require('../config/environment');
 
 const router = express.Router();
 
@@ -33,20 +29,6 @@ const registerSchema = Joi.object({
 const refreshTokenSchema = Joi.object({
   refreshToken: Joi.string().required()
 });
-
-// Helper function to generate JWT
-const generateJWT = (user) => {
-  const payload = {
-    sub: user.id,
-    email: user.email,
-    role: user.role || 'student',
-    aud: 'ai-course-creator',
-    iat: Date.now() / 1000,
-    exp: Math.floor(Date.now() / 1000) + (60 * 60 * 24) // 24 hours
-  };
-
-  return jwt.sign(payload, env.JWT_SECRET);
-};
 
 // ==================== AUTHENTICATION ENDPOINTS ====================
 
@@ -96,9 +78,6 @@ router.post('/login',
           message: 'Unable to fetch user profile'
         });
       }
-
-      // Generate JWT for our own validation
-      const token = generateJWT(profile);
 
       // Return user data with tokens
       res.json({
@@ -191,9 +170,6 @@ router.post('/register',
         throw profileError;
       }
 
-      // Generate JWT
-      const token = generateJWT(profile);
-
       // Return user data with tokens
       res.status(201).json({
         user: {
@@ -204,8 +180,8 @@ router.post('/register',
           organization: profile.metadata?.organization,
           metadata: profile.metadata
         },
-        token: authData.session?.access_token || token,
-        refreshToken: authData.session?.refresh_token || ''
+        token: authData.session.access_token,
+        refreshToken: authData.session.refresh_token
       });
     } catch (error) {
       console.error('Registration error:', error);

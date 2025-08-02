@@ -158,8 +158,7 @@ export default defineConfig({
       name: 'accessibility-dark',
       use: { 
         ...devices['Desktop Chrome'],
-        colorScheme: 'dark',
-        reducedMotion: 'reduce'
+        colorScheme: 'dark'
       },
       testMatch: ['accessibility.spec.ts']
     },

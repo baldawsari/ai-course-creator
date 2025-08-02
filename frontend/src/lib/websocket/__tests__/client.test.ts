@@ -43,7 +43,7 @@ function createMockSocket(): jest.Mocked<Socket> {
   // Setup event handler storage
   const eventHandlers: Record<string, Set<Function>> = {}
   
-  mockSocket.on.mockImplementation((event: string, handler: Function) => {
+  mockSocket.on.mockImplementation((event: string, handler: any) => {
     if (!eventHandlers[event]) {
       eventHandlers[event] = new Set()
     }
@@ -73,7 +73,7 @@ describe('WebSocketClient', () => {
   let client: WebSocketClient
   let mockSocket: jest.Mocked<Socket>
   let originalConsoleLog: typeof console.log
-  let consoleLogSpy: jest.SpyInstance
+  let consoleLogSpy: jest.SpiedFunction<typeof console.log>
 
   beforeEach(() => {
     jest.clearAllMocks()
@@ -99,13 +99,13 @@ describe('WebSocketClient', () => {
 
     // Mock window event listeners
     const eventListeners: Record<string, Set<Function>> = {}
-    window.addEventListener = jest.fn((event: string, handler: Function) => {
+    ;(window.addEventListener as any) = jest.fn((event: string, handler: Function) => {
       if (!eventListeners[event]) {
         eventListeners[event] = new Set()
       }
       eventListeners[event].add(handler)
     })
-    window.removeEventListener = jest.fn((event: string, handler: Function) => {
+    ;(window.removeEventListener as any) = jest.fn((event: string, handler: Function) => {
       if (eventListeners[event]) {
         eventListeners[event].delete(handler)
       }
@@ -119,14 +119,14 @@ describe('WebSocketClient', () => {
 
     // Setup console log spy
     originalConsoleLog = console.log
-    consoleLogSpy = jest.spyOn(console, 'log').mockImplementation()
+    consoleLogSpy = jest.spyOn(console, 'log').mockImplementation(() => {})
 
     // Setup mock socket
     mockSocket = createMockSocket()
     mockedIo.mockReturnValue(mockSocket as any)
 
     // Mock process.env
-    process.env.NODE_ENV = 'development'
+    ;(process.env as any).NODE_ENV = 'development'
     process.env.NEXT_PUBLIC_WS_URL = 'http://test-server:3001'
   })
 
@@ -141,7 +141,7 @@ describe('WebSocketClient', () => {
   describe('Constructor and initialization', () => {
     it('should create client with default options', () => {
       // Set token to prevent auto-connect error
-      localStorage.getItem = jest.fn().mockReturnValue('test-token')
+      ;(localStorage.getItem as jest.Mock) = jest.fn().mockReturnValue('test-token')
       
       client = new WebSocketClient()
       
@@ -162,7 +162,7 @@ describe('WebSocketClient', () => {
     })
 
     it('should auto-connect when enabled', () => {
-      localStorage.getItem = jest.fn().mockReturnValue('test-token')
+      ;(localStorage.getItem as jest.Mock) = jest.fn().mockReturnValue('test-token')
       
       client = new WebSocketClient({ autoConnect: true })
       
@@ -178,7 +178,7 @@ describe('WebSocketClient', () => {
 
   describe('Connection lifecycle', () => {
     beforeEach(() => {
-      localStorage.getItem = jest.fn().mockReturnValue('test-token')
+      ;(localStorage.getItem as jest.Mock) = jest.fn().mockReturnValue('test-token')
       client = new WebSocketClient({ autoConnect: false })
     })
 
@@ -205,7 +205,7 @@ describe('WebSocketClient', () => {
     })
 
     it('should throw error if no token available', async () => {
-      localStorage.getItem = jest.fn().mockReturnValue(null)
+      ;(localStorage.getItem as jest.Mock) = jest.fn().mockReturnValue(null)
       
       await expect(client.connect()).rejects.toThrow('No authentication token available')
     })
@@ -256,7 +256,7 @@ describe('WebSocketClient', () => {
 
   describe('Event handling', () => {
     beforeEach(async () => {
-      localStorage.getItem = jest.fn().mockReturnValue('test-token')
+      ;(localStorage.getItem as jest.Mock) = jest.fn().mockReturnValue('test-token')
       client = new WebSocketClient({ autoConnect: false })
       await client.connect()
     })
@@ -327,7 +327,7 @@ describe('WebSocketClient', () => {
 
   describe('Emit functionality', () => {
     beforeEach(async () => {
-      localStorage.getItem = jest.fn().mockReturnValue('test-token')
+      ;(localStorage.getItem as jest.Mock) = jest.fn().mockReturnValue('test-token')
       client = new WebSocketClient({ autoConnect: false })
       await client.connect()
       mockSocket.connected = true
@@ -375,7 +375,7 @@ describe('WebSocketClient', () => {
 
   describe('Room management', () => {
     beforeEach(async () => {
-      localStorage.getItem = jest.fn().mockReturnValue('test-token')
+      ;(localStorage.getItem as jest.Mock) = jest.fn().mockReturnValue('test-token')
       client = new WebSocketClient({ autoConnect: false })
       await client.connect()
       mockSocket.connected = true
@@ -396,7 +396,7 @@ describe('WebSocketClient', () => {
 
   describe('Collaboration features', () => {
     beforeEach(async () => {
-      localStorage.getItem = jest.fn().mockReturnValue('test-token')
+      ;(localStorage.getItem as jest.Mock) = jest.fn().mockReturnValue('test-token')
       client = new WebSocketClient({ autoConnect: false })
       await client.connect()
       mockSocket.connected = true
@@ -482,7 +482,7 @@ describe('WebSocketClient', () => {
 
   describe('Auto-reconnection and exponential backoff', () => {
     beforeEach(async () => {
-      localStorage.getItem = jest.fn().mockReturnValue('test-token')
+      ;(localStorage.getItem as jest.Mock) = jest.fn().mockReturnValue('test-token')
       jest.useFakeTimers()
       client = new WebSocketClient({ 
         autoConnect: false,
@@ -571,7 +571,7 @@ describe('WebSocketClient', () => {
 
   describe('Offline/Online handling', () => {
     beforeEach(async () => {
-      localStorage.getItem = jest.fn().mockReturnValue('test-token')
+      ;(localStorage.getItem as jest.Mock) = jest.fn().mockReturnValue('test-token')
       client = new WebSocketClient({ autoConnect: false })
       await client.connect()
       mockSocket.connected = true
@@ -627,7 +627,7 @@ describe('WebSocketClient', () => {
 
   describe('Heartbeat mechanism', () => {
     beforeEach(async () => {
-      localStorage.getItem = jest.fn().mockReturnValue('test-token')
+      ;(localStorage.getItem as jest.Mock) = jest.fn().mockReturnValue('test-token')
       jest.useFakeTimers()
       client = new WebSocketClient({ 
         autoConnect: false,
@@ -684,7 +684,7 @@ describe('WebSocketClient', () => {
 
   describe('Authentication token handling', () => {
     it('should use token from localStorage', async () => {
-      localStorage.getItem = jest.fn().mockReturnValue('stored-token')
+      ;(localStorage.getItem as jest.Mock) = jest.fn().mockReturnValue('stored-token')
       client = new WebSocketClient({ autoConnect: false })
       
       await client.connect()
@@ -699,7 +699,7 @@ describe('WebSocketClient', () => {
     })
 
     it('should prefer provided token over stored token', async () => {
-      localStorage.getItem = jest.fn().mockReturnValue('stored-token')
+      ;(localStorage.getItem as jest.Mock) = jest.fn().mockReturnValue('stored-token')
       client = new WebSocketClient({ autoConnect: false })
       
       await client.connect('provided-token')
@@ -713,7 +713,7 @@ describe('WebSocketClient', () => {
     })
 
     it('should throw error when no token is available', async () => {
-      localStorage.getItem = jest.fn().mockReturnValue(null)
+      ;(localStorage.getItem as jest.Mock) = jest.fn().mockReturnValue(null)
       client = new WebSocketClient({ autoConnect: false })
       
       await expect(client.connect()).rejects.toThrow('No authentication token available')
@@ -722,7 +722,7 @@ describe('WebSocketClient', () => {
 
   describe('Error scenarios and edge cases', () => {
     beforeEach(() => {
-      localStorage.getItem = jest.fn().mockReturnValue('test-token')
+      ;(localStorage.getItem as jest.Mock) = jest.fn().mockReturnValue('test-token')
     })
 
     it('should handle connection errors gracefully', async () => {
@@ -771,7 +771,7 @@ describe('WebSocketClient', () => {
     })
 
     it('should handle logging when disabled', () => {
-      process.env.NODE_ENV = 'production'
+      ;(process.env as any).NODE_ENV = 'production'
       client = new WebSocketClient({ 
         autoConnect: false,
         enableLogging: false 
@@ -801,7 +801,7 @@ describe('WebSocketClient', () => {
 
   describe('Connection state management', () => {
     beforeEach(() => {
-      localStorage.getItem = jest.fn().mockReturnValue('test-token')
+      ;(localStorage.getItem as jest.Mock) = jest.fn().mockReturnValue('test-token')
       client = new WebSocketClient({ autoConnect: false })
     })
 
@@ -836,7 +836,7 @@ describe('WebSocketClient', () => {
 
   describe('Singleton pattern', () => {
     beforeEach(() => {
-      localStorage.getItem = jest.fn().mockReturnValue('test-token')
+      ;(localStorage.getItem as jest.Mock) = jest.fn().mockReturnValue('test-token')
     })
 
     it('should return same instance from getWebSocketClient', () => {

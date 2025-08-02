@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import { Lexend, Plus_Jakarta_Sans } from 'next/font/google'
 import './globals.css'
+import { Providers } from '@/components/providers'
 
 const lexend = Lexend({ 
   subsets: ['latin'],
@@ -72,7 +73,9 @@ export default function RootLayout({
   return (
     <html lang="en" className={`${lexend.variable} ${plusJakartaSans.variable}`}>
       <body className="font-sans antialiased">
-        {children}
+        <Providers>
+          {children}
+        </Providers>
       </body>
     </html>
   )

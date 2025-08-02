@@ -242,7 +242,6 @@ export class WebSocketClient {
         reconnection: this.options.reconnection,
         reconnectionAttempts: this.options.reconnectionAttempts,
         reconnectionDelay: this.options.reconnectionDelay,
-        maxReconnectionDelay: this.options.maxReconnectionDelay,
       })
 
       this.setupEventListeners()
@@ -319,7 +318,7 @@ export class WebSocketClient {
     this.eventListeners.get(event)!.add(callback)
     
     if (this.socket) {
-      this.socket.on(event, callback)
+      this.socket.on(event as string, callback as any)
     }
 
     // Return unsubscribe function
@@ -342,7 +341,7 @@ export class WebSocketClient {
     }
 
     if (this.socket) {
-      this.socket.off(event, callback)
+      this.socket.off(event as string, callback as any)
     }
   }
 
@@ -438,8 +437,7 @@ export class WebSocketClient {
       
       toast({
         title: 'Connected',
-        description: 'Real-time collaboration is now active',
-        variant: 'success'
+        description: 'Real-time collaboration is now active'
       })
     })
 
@@ -463,8 +461,7 @@ export class WebSocketClient {
       
       toast({
         title: 'Reconnected',
-        description: 'Connection restored successfully',
-        variant: 'success'
+        description: 'Connection restored successfully'
       })
     })
 
@@ -565,7 +562,7 @@ export class WebSocketClient {
     toast({
       title: 'Offline Mode',
       description: 'Changes will be synced when connection is restored',
-      variant: 'warning'
+      variant: 'destructive'
     })
   }
 

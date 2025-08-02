@@ -4,7 +4,7 @@ const fs = require('fs').promises;
 const path = require('path');
 const archiver = require('archiver');
 const { supabaseAdmin } = require('../config/database');
-const { authenticateToken, requirePermission } = require('../middleware/auth');
+const { authenticateUser, requireAuth } = require('../middleware/auth');
 const { asyncHandler } = require('../middleware/errorHandling');
 const logger = require('../utils/logger');
 const Bull = require('bull');
@@ -216,7 +216,7 @@ const customizeExportSchema = Joi.object({
 /**
  * POST /export/html - Generate HTML export
  */
-router.post('/html', authenticateToken, requirePermission('export', 'create'), asyncHandler(async (req, res) => {
+router.post('/html', authenticateUser, asyncHandler(async (req, res) => {
   const { error: validationError, value: validatedData } = htmlExportSchema.validate(req.body);
   
   if (validationError) {
@@ -311,7 +311,7 @@ router.post('/html', authenticateToken, requirePermission('export', 'create'), a
 /**
  * POST /export/pdf - Generate PDF export
  */
-router.post('/pdf', authenticateToken, requirePermission('export', 'create'), asyncHandler(async (req, res) => {
+router.post('/pdf', authenticateUser, asyncHandler(async (req, res) => {
   const { error: validationError, value: validatedData } = pdfExportSchema.validate(req.body);
   
   if (validationError) {
@@ -406,7 +406,7 @@ router.post('/pdf', authenticateToken, requirePermission('export', 'create'), as
 /**
  * POST /export/ppt - Generate PowerPoint export
  */
-router.post('/ppt', authenticateToken, requirePermission('export', 'create'), asyncHandler(async (req, res) => {
+router.post('/ppt', authenticateUser, asyncHandler(async (req, res) => {
   const { error: validationError, value: validatedData } = pptExportSchema.validate(req.body);
   
   if (validationError) {
@@ -501,7 +501,7 @@ router.post('/ppt', authenticateToken, requirePermission('export', 'create'), as
 /**
  * POST /export/bundle - Generate multiple format bundle export
  */
-router.post('/bundle', authenticateToken, requirePermission('export', 'create'), asyncHandler(async (req, res) => {
+router.post('/bundle', authenticateUser, asyncHandler(async (req, res) => {
   const { error: validationError, value: validatedData } = bundleExportSchema.validate(req.body);
   
   if (validationError) {
@@ -599,7 +599,7 @@ router.post('/bundle', authenticateToken, requirePermission('export', 'create'),
 /**
  * GET /export/templates - List available templates
  */
-router.get('/templates', authenticateToken, asyncHandler(async (req, res) => {
+router.get('/templates', authenticateUser, asyncHandler(async (req, res) => {
   try {
     const templates = [
       {
@@ -677,7 +677,7 @@ router.get('/templates', authenticateToken, asyncHandler(async (req, res) => {
 /**
  * GET /export/status/:exportId - Check export status
  */
-router.get('/status/:exportId', authenticateToken, asyncHandler(async (req, res) => {
+router.get('/status/:exportId', authenticateUser, asyncHandler(async (req, res) => {
   const { exportId } = req.params;
 
   try {
@@ -731,7 +731,7 @@ router.get('/status/:exportId', authenticateToken, asyncHandler(async (req, res)
 /**
  * GET /export/download/:exportId - Download generated files
  */
-router.get('/download/:exportId', authenticateToken, asyncHandler(async (req, res) => {
+router.get('/download/:exportId', authenticateUser, asyncHandler(async (req, res) => {
   const { exportId } = req.params;
 
   try {
@@ -824,7 +824,7 @@ router.get('/download/:exportId', authenticateToken, asyncHandler(async (req, re
 /**
  * POST /export/customize - Custom export with options
  */
-router.post('/customize', authenticateToken, requirePermission('export', 'create'), asyncHandler(async (req, res) => {
+router.post('/customize', authenticateUser, asyncHandler(async (req, res) => {
   const { error: validationError, value: validatedData } = customizeExportSchema.validate(req.body);
   
   if (validationError) {
@@ -917,7 +917,7 @@ router.post('/customize', authenticateToken, requirePermission('export', 'create
 /**
  * GET /export/history - Get user's export history
  */
-router.get('/history', authenticateToken, asyncHandler(async (req, res) => {
+router.get('/history', authenticateUser, asyncHandler(async (req, res) => {
   const { 
     page = 1,
     limit = 20,
@@ -998,7 +998,7 @@ router.get('/history', authenticateToken, asyncHandler(async (req, res) => {
 /**
  * DELETE /export/:exportId - Delete export and files
  */
-router.delete('/:exportId', authenticateToken, asyncHandler(async (req, res) => {
+router.delete('/:exportId', authenticateUser, asyncHandler(async (req, res) => {
   const { exportId } = req.params;
 
   try {

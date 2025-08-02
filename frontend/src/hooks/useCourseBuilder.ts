@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useRouter } from 'next/navigation'
+import { api } from '@/lib/api/endpoints'
 
 interface FileResource {
   id: string
@@ -60,67 +61,26 @@ interface HistoryState {
 
 // API functions
 const fetchCourse = async (courseId: string): Promise<CourseData> => {
-  const response = await fetch(`/api/courses/${courseId}`)
-  if (!response.ok) {
-    throw new Error('Failed to fetch course')
-  }
-  return response.json()
+  return api.courses.get(courseId) as Promise<CourseData>
 }
 
 const updateCourseAPI = async (courseData: Partial<CourseData>): Promise<CourseData> => {
-  const response = await fetch(`/api/courses/${courseData.id}`, {
-    method: 'PUT',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify(courseData),
-  })
-  if (!response.ok) {
-    throw new Error('Failed to update course')
-  }
-  return response.json()
+  if (!courseData.id) throw new Error('Course ID is required')
+  return api.courses.update(courseData.id, courseData) as Promise<CourseData>
 }
 
 const uploadFilesAPI = async (courseId: string, files: File[]): Promise<FileResource[]> => {
-  const formData = new FormData()
-  files.forEach(file => formData.append('files', file))
-  
-  const response = await fetch(`/api/courses/${courseId}/upload`, {
-    method: 'POST',
-    body: formData,
-  })
-  if (!response.ok) {
-    throw new Error('Failed to upload files')
-  }
-  return response.json()
+  const result = await api.courses.uploadResources(courseId, files)
+  return result.documents as FileResource[]
 }
 
 const addUrlAPI = async (courseId: string, url: string): Promise<FileResource> => {
-  const response = await fetch(`/api/courses/${courseId}/add-url`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({ url }),
-  })
-  if (!response.ok) {
-    throw new Error('Failed to add URL')
-  }
-  return response.json()
+  const result = await api.courses.addUrl(courseId, url)
+  return result.document as FileResource
 }
 
 const generateCourseAPI = async (courseId: string, options: GenerationOptions): Promise<any> => {
-  const response = await fetch(`/api/courses/${courseId}/generate`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify(options),
-  })
-  if (!response.ok) {
-    throw new Error('Failed to generate course')
-  }
-  return response.json()
+  return api.courses.generateContent(courseId, options as any)
 }
 
 export function useCourseBuilder(courseId: string) {

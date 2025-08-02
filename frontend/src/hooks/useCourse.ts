@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import type { Course } from '@/types/course'
+import { api } from '@/lib/api/endpoints'
 
 export function useCourse(courseId: string) {
   const [course, setCourse] = useState<Course | null>(null)
@@ -12,13 +13,7 @@ export function useCourse(courseId: string) {
         setIsLoading(true)
         setError(null)
         
-        // Mock API call - replace with actual API
-        const response = await fetch(`/api/courses/${courseId}`)
-        if (!response.ok) {
-          throw new Error('Failed to fetch course')
-        }
-        
-        const courseData = await response.json()
+        const courseData = await api.courses.get(courseId)
         setCourse(courseData)
       } catch (err) {
         setError(err instanceof Error ? err.message : 'An error occurred')
@@ -63,20 +58,7 @@ export function useCourse(courseId: string) {
 
   const updateCourse = async (updatedCourse: Course) => {
     try {
-      // Mock API call - replace with actual API
-      const response = await fetch(`/api/courses/${courseId}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(updatedCourse),
-      })
-      
-      if (!response.ok) {
-        throw new Error('Failed to update course')
-      }
-      
-      const updated = await response.json()
+      const updated = await api.courses.update(courseId, updatedCourse)
       setCourse(updated)
       return updated
     } catch (err) {

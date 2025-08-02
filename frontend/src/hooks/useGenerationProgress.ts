@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { GenerationProgress, GenerationProgressUpdate, GenerationLog } from '@/types'
+import { api } from '@/lib/api/endpoints'
 
 interface UseGenerationProgressOptions {
   jobId: string
@@ -223,14 +224,8 @@ export function useGenerationProgressPolling({
     setError(null)
 
     try {
-      const response = await fetch(`/api/generation/${jobId}/progress`)
-      
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`)
-      }
-
-      const data: GenerationProgress = await response.json()
-      setProgress(data)
+      const data = await api.jobs.getStatus(jobId)
+      setProgress(data as GenerationProgress)
 
       if (data.isComplete) {
         onComplete?.(data)

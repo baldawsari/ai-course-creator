@@ -332,7 +332,7 @@ describe('Authentication Flow Integration Tests', () => {
       
       // Mock the fetch function directly since MSW isn't working properly
       const originalFetch = global.fetch
-      global.fetch = jest.fn().mockImplementation((url: string) => {
+      ;(global.fetch as jest.Mock) = jest.fn().mockImplementation((url: string) => {
         if (url.includes('/auth/login')) {
           return Promise.resolve({
             ok: true,
@@ -438,7 +438,7 @@ describe('Authentication Flow Integration Tests', () => {
       
       // Mock the fetch function directly
       const originalFetch = global.fetch
-      global.fetch = jest.fn().mockImplementation((url: string) => {
+      ;(global.fetch as jest.Mock) = jest.fn().mockImplementation((url: string) => {
         if (url.includes('/auth/register')) {
           return Promise.resolve({
             ok: true,
@@ -713,7 +713,7 @@ describe('Authentication Flow Integration Tests', () => {
       const originalFetch = global.fetch
       let resolvePromise: ((value: any) => void) | null = null
       
-      global.fetch = jest.fn().mockImplementation((url: string) => {
+      ;(global.fetch as jest.Mock) = jest.fn().mockImplementation((url: string) => {
         if (url.includes('/auth/login')) {
           return new Promise((resolve) => {
             resolvePromise = resolve

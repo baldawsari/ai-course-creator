@@ -1,7 +1,7 @@
 const express = require('express');
 const Joi = require('joi');
 const { supabaseAdmin } = require('../config/database');
-const { authenticateToken, requirePermission } = require('../middleware/auth');
+const { authenticateUser, requireAuth } = require('../middleware/auth');
 const { asyncHandler } = require('../middleware/errorHandling');
 const courseGenerator = require('../services/courseGenerator');
 const logger = require('../utils/logger');
@@ -57,7 +57,7 @@ const reorderSessionsSchema = Joi.object({
 /**
  * GET /courses - List user's courses with pagination and filtering
  */
-router.get('/', authenticateToken, asyncHandler(async (req, res) => {
+router.get('/', authenticateUser, asyncHandler(async (req, res) => {
   const {
     page = 1,
     limit = 10,
@@ -157,7 +157,7 @@ router.get('/', authenticateToken, asyncHandler(async (req, res) => {
 /**
  * POST /courses - Create new course
  */
-router.post('/', authenticateToken, requirePermission('courses', 'create'), asyncHandler(async (req, res) => {
+router.post('/', authenticateUser, asyncHandler(async (req, res) => {
   const { error: validationError, value: validatedData } = courseSchema.validate(req.body);
   
   if (validationError) {
@@ -207,7 +207,7 @@ router.post('/', authenticateToken, requirePermission('courses', 'create'), asyn
 /**
  * GET /courses/:id - Get course details
  */
-router.get('/:id', authenticateToken, asyncHandler(async (req, res) => {
+router.get('/:id', authenticateUser, asyncHandler(async (req, res) => {
   const { id } = req.params;
 
   const { data: course, error } = await supabaseAdmin
@@ -270,7 +270,7 @@ router.get('/:id', authenticateToken, asyncHandler(async (req, res) => {
 /**
  * PUT /courses/:id - Update course
  */
-router.put('/:id', authenticateToken, requirePermission('courses', 'update'), asyncHandler(async (req, res) => {
+router.put('/:id', authenticateUser, asyncHandler(async (req, res) => {
   const { id } = req.params;
   
   const { error: validationError, value: validatedData } = updateCourseSchema.validate(req.body);
@@ -333,7 +333,7 @@ router.put('/:id', authenticateToken, requirePermission('courses', 'update'), as
 /**
  * DELETE /courses/:id - Delete course
  */
-router.delete('/:id', authenticateToken, requirePermission('courses', 'delete'), asyncHandler(async (req, res) => {
+router.delete('/:id', authenticateUser, asyncHandler(async (req, res) => {
   const { id } = req.params;
 
   // Check if course exists and user has permission
@@ -377,7 +377,7 @@ router.delete('/:id', authenticateToken, requirePermission('courses', 'delete'),
 /**
  * GET /courses/:id/resources - List course resources
  */
-router.get('/:id/resources', authenticateToken, asyncHandler(async (req, res) => {
+router.get('/:id/resources', authenticateUser, asyncHandler(async (req, res) => {
   const { id: courseId } = req.params;
   const { 
     minQuality,
@@ -452,7 +452,7 @@ router.get('/:id/resources', authenticateToken, asyncHandler(async (req, res) =>
 /**
  * POST /courses/:id/resources - Add resources to course
  */
-router.post('/:id/resources', authenticateToken, requirePermission('resources', 'create'), asyncHandler(async (req, res) => {
+router.post('/:id/resources', authenticateUser, asyncHandler(async (req, res) => {
   const { id: courseId } = req.params;
   const { resourceIds } = req.body;
 
@@ -503,7 +503,7 @@ router.post('/:id/resources', authenticateToken, requirePermission('resources', 
 /**
  * DELETE /courses/:id/resources/:resourceId - Remove resource from course
  */
-router.delete('/:id/resources/:resourceId', authenticateToken, requirePermission('resources', 'delete'), asyncHandler(async (req, res) => {
+router.delete('/:id/resources/:resourceId', authenticateUser, asyncHandler(async (req, res) => {
   const { id: courseId, resourceId } = req.params;
 
   // Check course exists and user has permission
@@ -553,7 +553,7 @@ router.delete('/:id/resources/:resourceId', authenticateToken, requirePermission
 /**
  * GET /courses/:id/sessions - List course sessions
  */
-router.get('/:id/sessions', authenticateToken, asyncHandler(async (req, res) => {
+router.get('/:id/sessions', authenticateUser, asyncHandler(async (req, res) => {
   const { id: courseId } = req.params;
 
   // Check course access
@@ -597,7 +597,7 @@ router.get('/:id/sessions', authenticateToken, asyncHandler(async (req, res) => 
 /**
  * POST /courses/:id/sessions - Add session to course
  */
-router.post('/:id/sessions', authenticateToken, requirePermission('courses', 'update'), asyncHandler(async (req, res) => {
+router.post('/:id/sessions', authenticateUser, asyncHandler(async (req, res) => {
   const { id: courseId } = req.params;
   
   const { error: validationError, value: validatedData } = sessionSchema.validate(req.body);
@@ -669,7 +669,7 @@ router.post('/:id/sessions', authenticateToken, requirePermission('courses', 'up
 /**
  * PUT /courses/:id/sessions/:sessionId - Update session
  */
-router.put('/:id/sessions/:sessionId', authenticateToken, requirePermission('courses', 'update'), asyncHandler(async (req, res) => {
+router.put('/:id/sessions/:sessionId', authenticateUser, asyncHandler(async (req, res) => {
   const { id: courseId, sessionId } = req.params;
   
   const { error: validationError, value: validatedData } = sessionSchema.validate(req.body);
@@ -727,7 +727,7 @@ router.put('/:id/sessions/:sessionId', authenticateToken, requirePermission('cou
 /**
  * DELETE /courses/:id/sessions/:sessionId - Delete session
  */
-router.delete('/:id/sessions/:sessionId', authenticateToken, requirePermission('courses', 'update'), asyncHandler(async (req, res) => {
+router.delete('/:id/sessions/:sessionId', authenticateUser, asyncHandler(async (req, res) => {
   const { id: courseId, sessionId } = req.params;
 
   // Check course and session exist and user has permission
@@ -777,7 +777,7 @@ router.delete('/:id/sessions/:sessionId', authenticateToken, requirePermission('
 /**
  * POST /courses/:id/sessions/reorder - Reorder sessions
  */
-router.post('/:id/sessions/reorder', authenticateToken, requirePermission('courses', 'update'), asyncHandler(async (req, res) => {
+router.post('/:id/sessions/reorder', authenticateUser, asyncHandler(async (req, res) => {
   const { id: courseId } = req.params;
   
   const { error: validationError, value: validatedData } = reorderSessionsSchema.validate(req.body);
@@ -849,7 +849,7 @@ router.post('/:id/sessions/reorder', authenticateToken, requirePermission('cours
 /**
  * POST /courses/:id/generate - Start course generation
  */
-router.post('/:id/generate', authenticateToken, requirePermission('generation', 'create'), asyncHandler(async (req, res) => {
+router.post('/:id/generate', authenticateUser, asyncHandler(async (req, res) => {
   const { id: courseId } = req.params;
 
   // Check course exists and user has permission
@@ -888,7 +888,7 @@ router.post('/:id/generate', authenticateToken, requirePermission('generation', 
 /**
  * GET /courses/:id/generation/:jobId - Get generation status
  */
-router.get('/:id/generation/:jobId', authenticateToken, asyncHandler(async (req, res) => {
+router.get('/:id/generation/:jobId', authenticateUser, asyncHandler(async (req, res) => {
   const { id: courseId, jobId } = req.params;
 
   // Check course access
@@ -921,7 +921,7 @@ router.get('/:id/generation/:jobId', authenticateToken, asyncHandler(async (req,
 /**
  * GET /courses/:id/export - Export course data
  */
-router.get('/:id/export', authenticateToken, asyncHandler(async (req, res) => {
+router.get('/:id/export', authenticateUser, asyncHandler(async (req, res) => {
   const { id: courseId } = req.params;
   const { format = 'json' } = req.query;
 

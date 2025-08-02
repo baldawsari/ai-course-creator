@@ -5,6 +5,7 @@ import morgan from 'morgan';
 import dotenv from 'dotenv';
 import path from 'path';
 import rateLimit from 'express-rate-limit';
+import { authenticateUser } from './middleware/auth';
 
 // Load environment variables
 dotenv.config();
@@ -102,6 +103,73 @@ const sessionsRoutes = require('./routes/sessions');
 const profileRoutes = require('./routes/profile');
 const dashboardRoutes = require('./routes/dashboard');
 
+// Root endpoint - API welcome message
+app.get('/', (req: Request, res: Response) => {
+  const acceptsHtml = req.accepts('html');
+  
+  if (acceptsHtml) {
+    res.send(`
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <title>AI Course Creator API</title>
+          <style>
+            body { font-family: Arial, sans-serif; max-width: 800px; margin: 50px auto; padding: 20px; }
+            h1 { color: #333; }
+            a { color: #0066cc; text-decoration: none; }
+            a:hover { text-decoration: underline; }
+            pre { background: #f4f4f4; padding: 15px; border-radius: 5px; }
+            .endpoint { margin: 10px 0; }
+            .method { font-weight: bold; color: #0066cc; }
+          </style>
+        </head>
+        <body>
+          <h1>AI Course Creator API</h1>
+          <p>Version: 1.0.0</p>
+          <p>Environment: ${process.env.NODE_ENV || 'development'}</p>
+          <h2>Available Endpoints:</h2>
+          <ul>
+            <li class="endpoint"><span class="method">GET</span> <a href="/api">/api</a> - API Documentation</li>
+            <li class="endpoint"><span class="method">GET</span> <a href="/health">/health</a> - Health Check</li>
+          </ul>
+          <h2>API Resources:</h2>
+          <ul>
+            <li class="endpoint"><span class="method">*</span> /api/auth - Authentication endpoints</li>
+            <li class="endpoint"><span class="method">*</span> /api/upload - File upload endpoints</li>
+            <li class="endpoint"><span class="method">*</span> /api/courses - Course management</li>
+            <li class="endpoint"><span class="method">*</span> /api/generation - Course generation</li>
+            <li class="endpoint"><span class="method">*</span> /api/export - Export functionality</li>
+            <li class="endpoint"><span class="method">*</span> /api/sessions - Session management</li>
+            <li class="endpoint"><span class="method">*</span> /api/profile - User profiles</li>
+            <li class="endpoint"><span class="method">*</span> /api/dashboard - Dashboard data</li>
+          </ul>
+          <p>For detailed API documentation, visit <a href="/api">/api</a></p>
+        </body>
+      </html>
+    `);
+  } else {
+    res.json({
+      success: true,
+      message: 'Welcome to AI Course Creator API',
+      version: '1.0.0',
+      environment: process.env.NODE_ENV || 'development',
+      documentation: '/api',
+      health: '/health',
+      endpoints: {
+        auth: '/api/auth',
+        upload: '/api/upload',
+        courses: '/api/courses',
+        sessions: '/api/sessions',
+        generation: '/api/generation',
+        export: '/api/export',
+        profile: '/api/profile',
+        dashboard: '/api/dashboard'
+      },
+      timestamp: new Date().toISOString()
+    });
+  }
+});
+
 // Health check endpoint
 app.get('/health', asyncHandler(async (_req: Request, res: Response) => {
   const healthData = {
@@ -117,13 +185,13 @@ app.get('/health', asyncHandler(async (_req: Request, res: Response) => {
 
 // API routes with rate limiting
 app.use('/api/auth', authRoutes);
-app.use('/api/upload', limiter, uploadRoutes);
-app.use('/api/courses', coursesRoutes);
-app.use('/api/generation', limiter, generationRoutes);
-app.use('/api/export', limiter, exportRoutes);
-app.use('/api/sessions', sessionsRoutes);
-app.use('/api/profile', profileRoutes);
-app.use('/api/dashboard', dashboardRoutes);
+app.use('/api/upload', authenticateUser, limiter, uploadRoutes);
+app.use('/api/courses', authenticateUser, coursesRoutes);
+app.use('/api/generation', authenticateUser, limiter, generationRoutes);
+app.use('/api/export', authenticateUser, limiter, exportRoutes);
+app.use('/api/sessions', authenticateUser, sessionsRoutes);
+app.use('/api/profile', authenticateUser, profileRoutes);
+app.use('/api/dashboard', authenticateUser, dashboardRoutes);
 
 // API documentation endpoint
 app.get('/api', (_req: Request, res: Response) => {

@@ -20,21 +20,21 @@ const createMockResponse = (data: any, status = 200): AxiosResponse => ({
   status,
   statusText: 'OK',
   headers: {},
-  config: {} as AxiosRequestConfig,
+  config: { headers: {} } as AxiosRequestConfig,
 })
 
 const createMockError = (error: MockError): AxiosError => {
   const axiosError = new Error(error.message || 'Mock error') as AxiosError
   axiosError.response = error.response as AxiosResponse
   axiosError.request = error.request
-  axiosError.config = error.config || ({} as AxiosRequestConfig)
+  axiosError.config = error.config || ({ headers: {} } as AxiosRequestConfig)
   axiosError.isAxiosError = true
   axiosError.toJSON = () => ({})
   return axiosError
 }
 
 // Mock axios instance
-const mockAxios = {
+const mockAxios: any = {
   defaults: {
     baseURL: 'http://localhost:3001/api',
     timeout: 30000,
