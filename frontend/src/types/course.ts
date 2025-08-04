@@ -83,3 +83,11 @@ export interface CourseExportOptions {
     }
   }
 }
+
+export interface CourseUpdateData {
+  title?: string
+  description?: string
+  status?: CourseStatus
+  metadata?: Partial<CourseMetadata>
+  sessions?: Session[]
+}

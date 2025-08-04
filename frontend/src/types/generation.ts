@@ -131,3 +131,32 @@ export interface GenerationMetrics {
   averageQualityScore: number
   processingSpeed: number
 }
+
+export interface GenerationJob {
+  id: string
+  courseId: string
+  status: 'pending' | 'processing' | 'completed' | 'failed' | 'cancelled'
+  progress: GenerationProgress
+  config: {
+    title: string
+    description: string
+    documentIds: string[]
+    options: {
+      difficulty: 'beginner' | 'intermediate' | 'advanced'
+      sessionCount: number
+      includeQuizzes: boolean
+      includeExercises: boolean
+      language: string
+      tone: 'formal' | 'casual' | 'academic'
+    }
+  }
+  createdAt: string
+  updatedAt: string
+  completedAt?: string
+  error?: string
+  result?: {
+    courseId: string
+    sessionsGenerated: number
+    qualityScore: number
+  }
+}

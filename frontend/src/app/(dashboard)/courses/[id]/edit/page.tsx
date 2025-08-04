@@ -365,7 +365,7 @@ export default function CourseEditPage() {
         <div className="flex-1 flex flex-col overflow-hidden" data-testid="content-editor">
           <ContentEditor
             courseId={courseId}
-            selectedSession={selectedSessionId ? course.sessions?.find(s => s.id === selectedSessionId) : null}
+            selectedSession={selectedSessionId ? course.sessions?.find(s => s.id === selectedSessionId) || null : null}
             selectedActivity={selectedActivityId}
             onSessionUpdate={updateSession}
             onActivityUpdate={updateActivity}
@@ -430,7 +430,7 @@ export default function CourseEditPage() {
                 {rightPanelContent === 'ai' && (
                   <AIEnhancementPanel
                     courseId={courseId}
-                    selectedSession={selectedSessionId ? course.sessions?.find(s => s.id === selectedSessionId) : null}
+                    selectedSession={selectedSessionId ? course.sessions?.find(s => s.id === selectedSessionId) || null : null}
                     selectedActivity={selectedActivityId}
                     onApplySuggestion={(suggestion) => {
                       // Apply AI suggestion

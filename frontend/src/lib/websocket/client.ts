@@ -106,6 +106,7 @@ export interface RealtimeNotification {
   timestamp: Date
   persistent?: boolean
   sound?: boolean
+  read?: boolean
 }
 
 export interface ActivityEvent {

@@ -79,11 +79,8 @@ let mockCourses = [
   }
 ]
 
-interface CoursesPageProps {
-  courses?: typeof mockCourses
-}
-
-export default function CoursesPage({ courses = mockCourses }: CoursesPageProps = {}) {
+export default function CoursesPage() {
+  const courses = mockCourses
   const [searchTerm, setSearchTerm] = useState('')
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid')
   const [selectedCourses, setSelectedCourses] = useState<Set<string>>(new Set())

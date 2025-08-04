@@ -511,8 +511,7 @@ export function useCollaborationToast() {
         toast({
           title: latestNotification.title,
           description: latestNotification.message,
-          variant: latestNotification.type === 'error' ? 'destructive' : 'default',
-          duration: latestNotification.persistent ? 0 : 5000 // 0 = no auto-dismiss for persistent
+          variant: latestNotification.type === 'error' ? 'destructive' : 'default'
         })
       }
     }

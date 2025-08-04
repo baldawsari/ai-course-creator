@@ -254,7 +254,7 @@ export default function DesignStudioPage() {
     setDesignSettings(prev => ({
       ...prev,
       [section]: {
-        ...prev[section],
+        ...(prev[section] as Record<string, any>),
         [key]: value
       }
     }))

@@ -269,9 +269,9 @@ export function IntegrationHub() {
                           <Button 
                             variant="outline" 
                             size="sm"
-                            className={lms.status === 'error' ? 'border-red-200 text-red-600' : ''}
+                            className={lms.status !== 'connected' ? 'border-red-200 text-red-600' : ''}
                           >
-                            {lms.status === 'error' ? 'Reconnect' : 'Disconnect'}
+                            {lms.status !== 'connected' ? 'Reconnect' : 'Disconnect'}
                           </Button>
                         </>
                       ) : (

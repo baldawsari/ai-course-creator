@@ -109,6 +109,7 @@ router.post('/login',
 router.post('/register',
   rateLimitByUser({ max: 3, windowMs: 60 * 60 * 1000, message: 'Too many registration attempts. Please try again later.' }),
   asyncHandler(async (req, res) => {
+    console.log('Registration request body:', req.body);
     const { error: validationError, value: validatedData } = registerSchema.validate(req.body);
     
     if (validationError) {
@@ -134,6 +135,7 @@ router.post('/register',
       });
 
       if (authError) {
+        console.error('Auth signup error:', authError);
         if (authError.message.includes('already registered')) {
           return res.status(409).json({
             error: 'User already exists',
@@ -146,6 +148,12 @@ router.post('/register',
       if (!authData.user) {
         throw new Error('User creation failed');
       }
+
+      console.log('Auth data received:', {
+        user: authData.user?.id,
+        hasSession: !!authData.session,
+        hasAccessToken: !!authData.session?.access_token
+      });
 
       // Create user profile
       const { data: profile, error: profileError } = await supabaseAdmin
@@ -171,7 +179,7 @@ router.post('/register',
       }
 
       // Return user data with tokens
-      res.status(201).json({
+      const responseData = {
         user: {
           id: profile.id,
           email: profile.email,
@@ -180,14 +188,22 @@ router.post('/register',
           organization: profile.metadata?.organization,
           metadata: profile.metadata
         },
-        token: authData.session.access_token,
-        refreshToken: authData.session.refresh_token
+        token: authData.session?.access_token || '',
+        refreshToken: authData.session?.refresh_token || ''
+      };
+
+      console.log('Sending response:', { 
+        hasToken: !!responseData.token,
+        hasRefreshToken: !!responseData.refreshToken 
       });
+
+      res.status(201).json(responseData);
     } catch (error) {
       console.error('Registration error:', error);
+      console.error('Error stack:', error.stack);
       res.status(500).json({
         error: 'Registration failed',
-        message: 'An error occurred during registration'
+        message: error.message || 'An error occurred during registration'
       });
     }
   })

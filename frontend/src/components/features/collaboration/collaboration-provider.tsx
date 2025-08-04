@@ -22,7 +22,7 @@ import {
   Users, 
   AlertTriangle, 
   CheckCircle,
-  Sync,
+  RefreshCw,
   CloudOff,
   Cloud,
   Activity
@@ -108,7 +108,7 @@ function ConnectionStatus({
       <div className="flex items-center gap-1">
         {pendingChanges > 0 && (
           <Badge variant="outline" className="text-xs" data-testid="pending-changes-indicator">
-            <Sync className="h-3 w-3 mr-1" />
+            <RefreshCw className="h-3 w-3 mr-1" />
             <span data-testid="pending-changes-count">{pendingChanges}</span> pending
           </Badge>
         )}
@@ -157,7 +157,7 @@ function OfflineBanner({
           
           {pendingChanges > 0 && (
             <Button size="sm" variant="outline" onClick={onSync}>
-              <Sync className="h-3 w-3 mr-1" />
+              <RefreshCw className="h-3 w-3 mr-1" />
               Retry Sync
             </Button>
           )}
@@ -190,7 +190,7 @@ function SyncProgress({
       <Card className="p-4 w-80 shadow-lg">
         <div className="flex items-center gap-3">
           <div className="animate-spin">
-            <Sync className="h-4 w-4" />
+            <RefreshCw className="h-4 w-4" />
           </div>
           <div className="flex-1">
             <p className="text-sm font-medium">{message}</p>
